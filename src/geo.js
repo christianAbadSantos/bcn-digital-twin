@@ -31,44 +31,82 @@ export const PORT_POLY = [
 ]
 export const PORT_CENTER = [2.172, 41.345]
 
-// Líneas ferroviarias simplificadas (tipo Rodalies)
+// Líneas de metro ESQUEMÁTICAS: cada vértice es una estación aproximada.
+// Sirven para la demo visual y para el cálculo de rutas, no para planificar un viaje real.
 export const RAIL_LINES = [
   {
-    id: 'R1',
-    name: 'R1 Litoral',
-    color: '#f5a623',
+    id: 'L1',
+    name: 'L1',
+    color: '#e2231a',
     coords: [
-      [2.25, 41.455],
-      [2.237, 41.44],
-      [2.218, 41.43],
-      [2.187, 41.409],
-      [2.165, 41.392],
-      [2.14, 41.379],
-      [2.1, 41.36],
+      [2.1486, 41.375],
+      [2.1646, 41.3862],
+      [2.1731, 41.3895],
+      [2.1807, 41.3914],
+      [2.1881, 41.3984],
+      [2.19, 41.403],
+      [2.1872, 41.4105],
+      [2.189, 41.4225],
+      [2.1865, 41.4297],
     ],
   },
   {
-    id: 'R2',
-    name: 'R2 Aeroport',
-    color: '#4cc9f0',
+    id: 'L3',
+    name: 'L3',
+    color: '#00a651',
     coords: [
+      [2.1129, 41.3863],
       [2.14, 41.379],
-      [2.115, 41.35],
-      [2.09, 41.32],
-      [2.079, 41.297],
+      [2.1486, 41.375],
+      [2.17, 41.3745],
+      [2.1735, 41.38],
+      [2.17, 41.387],
+      [2.165, 41.392],
+      [2.153, 41.403],
+      [2.15, 41.413],
+      [2.1436, 41.4262],
     ],
   },
   {
-    id: 'R3',
-    name: 'R3 Nord',
-    color: '#b5179e',
+    id: 'L4',
+    name: 'L4',
+    color: '#ffc20e',
     coords: [
-      [2.14, 41.379],
-      [2.165, 41.392],
-      [2.19, 41.423],
-      [2.2, 41.465],
+      [2.209, 41.4094],
+      [2.2006, 41.404],
+      [2.196, 41.399],
+      [2.192, 41.3945],
+      [2.1895, 41.388],
+      [2.189, 41.38],
+      [2.1775, 41.3835],
+      [2.1731, 41.3895],
+      [2.168, 41.395],
+      [2.166, 41.403],
     ],
   },
+  {
+    id: 'L9',
+    name: 'L9 Sud · Aeroport',
+    color: '#f68b1f',
+    coords: [
+      [2.0711, 41.2945],
+      [2.098, 41.318],
+      [2.123, 41.356],
+      [2.1129, 41.3863],
+    ],
+  },
+]
+
+// Lugares de referencia para el recomendador de rutas
+export const PLACES = [
+  { id: 'sagrada', name: 'Sagrada Família', lon: 2.1744, lat: 41.4036 },
+  { id: 'catalunya', name: 'Plaça Catalunya', lon: 2.17, lat: 41.387 },
+  { id: 'aeroport', name: 'Aeroport T1', lon: 2.0711, lat: 41.2945 },
+  { id: 'portvell', name: 'Port Vell', lon: 2.183, lat: 41.375 },
+  { id: 'glories', name: 'Glòries', lon: 2.19, lat: 41.403 },
+  { id: 'espanya', name: 'Plaça Espanya', lon: 2.1486, lat: 41.375 },
+  { id: 'vallhebron', name: 'Vall d’Hebron', lon: 2.1436, lat: 41.4262 },
+  { id: 'campnou', name: 'Camp Nou', lon: 2.1228, lat: 41.3809 },
 ]
 
 // Rutas de barcos entrando al puerto
@@ -85,16 +123,19 @@ export const SHIP_ROUTES = [
   ],
 ]
 
-// Puntos negros de tráfico simulados (peso = probabilidad relativa)
+// Puntos negros REALES: los 8 puntos de Barcelona con más accidentes gestionados por la Guàrdia Urbana en 2024
+// (celdas de ~250 m, separados al menos 700 m). `acc` = accidentes a menos de 300 m del punto.
+// Fuente: Open Data BCN, "Accidents gestionats per la Guàrdia Urbana a la ciutat de Barcelona" (2024).
+// `w` (peso) = 0,6 + 0,8 × acc / máximo, y alimenta la simulación de tráfico.
 export const HOTSPOTS = [
-  { name: 'Glòries / Diagonal', lon: 2.19, lat: 41.403, w: 1.4 },
-  { name: 'Plaça Espanya', lon: 2.149, lat: 41.375, w: 1.2 },
-  { name: 'Ronda de Dalt · Vall d’Hebron', lon: 2.145, lat: 41.426, w: 1.1 },
-  { name: 'Meridiana · Sagrera', lon: 2.19, lat: 41.423, w: 1.0 },
-  { name: 'Pl. Francesc Macià', lon: 2.152, lat: 41.394, w: 1.0 },
-  { name: 'Ronda Litoral · Poblenou', lon: 2.202, lat: 41.4, w: 0.9 },
-  { name: 'Zona Franca', lon: 2.14, lat: 41.352, w: 0.8 },
-  { name: 'Gran Via · Plaça Universitat', lon: 2.164, lat: 41.386, w: 0.8 },
+  { name: 'Corts Catalanes / Gràcia', barri: 'la Dreta de l’Eixample', lon: 2.1675, lat: 41.3889, w: 1.4, acc: 123 },
+  { name: 'Corts Catalanes / Marina', barri: 'el Fort Pienc', lon: 2.1798, lat: 41.3981, w: 1.17, acc: 88 },
+  { name: 'Aragó / Comte d’Urgell', barri: 'l’Antiga Esquerra de l’Eixample', lon: 2.1553, lat: 41.3853, w: 1.15, acc: 84 },
+  { name: 'Ronda de Dalt (B-20) / Tibidabo', barri: 'Sant Gervasi - la Bonanova', lon: 2.1348, lat: 41.4148, w: 1.15, acc: 84 },
+  { name: 'Diagonal / Sarrià', barri: 'les Corts', lon: 2.1373, lat: 41.3909, w: 1.04, acc: 67 },
+  { name: 'Madrid / Brasil', barri: 'Sants - Badal', lon: 2.1297, lat: 41.3796, w: 1.02, acc: 65 },
+  { name: 'Diagonal / Reina Maria Cristina', barri: 'les Corts', lon: 2.1278, lat: 41.3885, w: 1.02, acc: 65 },
+  { name: 'Vall d’Hebron / Ronda de Dalt', barri: 'la Teixonera', lon: 2.1421, lat: 41.4242, w: 0.98, acc: 58 },
 ]
 
 // ---------- Geometría de rutas (para trenes y barcos) ----------

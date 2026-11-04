@@ -293,13 +293,13 @@ export default function ThreeTwin({ data, hour, layers }) {
         <directionalLight position={[60, 90, 40]} intensity={mm > 0.2 ? 0.7 : 1.3} />
         <Ground />
         <City />
-        <Rails visible={layers.rail} />
+        <Rails visible={layers.metro} />
         <Port visible={layers.port} />
         <Rain mm={mm} visible={layers.rain} />
         <Accidents data={data} hour={hour} visible={layers.accidents} />
         <OrbitControls target={[0, 0, 0]} maxPolarAngle={Math.PI / 2.05} minDistance={8} maxDistance={260} />
       </Canvas>
-      <div className="badge">Trenes, barcos y accidentes: simulados · Lluvia: {data.source} · {mm.toFixed(1)} mm/h</div>
+      <div className="badge">Accidentes: reales 2024 · Lluvia: {data.source} · Trenes y barcos: simulados · {mm.toFixed(1)} mm/h</div>
     </div>
   )
 }
