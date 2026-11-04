@@ -20,15 +20,27 @@ export const COAST = [
   [2.28, 41.45],
 ]
 
-// Recinto portuario (esquemático)
+// Recinto portuario (APROXIMADO, trazado a mano: del Port Vell al Moll Prat siguiendo la costa).
+// No sale de datos oficiales: ajusta los vértices si quieres más precisión.
 export const PORT_POLY = [
-  [2.156, 41.338],
+  [2.1795, 41.377],
+  [2.19, 41.364],
+  [2.196, 41.352],
+  [2.19, 41.344],
   [2.17, 41.33],
-  [2.188, 41.343],
-  [2.186, 41.356],
-  [2.175, 41.36],
-  [2.165, 41.348],
+  [2.148, 41.319],
+  [2.14, 41.32],
+  [2.148, 41.335],
+  [2.165, 41.35],
+  [2.1745, 41.364],
 ]
+// Puntos de interés del puerto (posiciones APROXIMADAS, sin verificar sobre el mapa)
+export const PORT_PINS = [
+  { name: 'Port Vell', lon: 2.1835, lat: 41.3755 },
+  { name: 'Moll Adossat · cruceros', lon: 2.1855, lat: 41.356 },
+  { name: 'Terminales de contenedores · Moll Prat', lon: 2.149, lat: 41.3265 },
+]
+export const PORT_BOUNDS = [[2.138, 41.317], [2.198, 41.379]] // [oeste, sur], [este, norte]
 export const PORT_CENTER = [2.172, 41.345]
 
 // Líneas de metro ESQUEMÁTICAS: cada vértice es una estación aproximada.

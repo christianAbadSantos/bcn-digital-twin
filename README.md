@@ -4,15 +4,18 @@ Demo web de un gemelo digital: **ingesta de varias fuentes → bus normalizado �
 
 ## Qué incluye
 
+- **Interfaz tipo centro de control**: barra superior, franja de KPIs en vivo, lista lateral de puntos negros/metro/grúas, mapa oscuro con barra de capas flotante, panel derecho y barra de estado con alertas. Paleta oscura con acento amarillo.
+
 - **Mapa 3D libre** (MapLibre + OpenStreetMap vía OpenFreeMap, sin clave ni cuenta): edificios 3D, metro con trenes 3D en movimiento (Three.js dentro del mapa), congestión por zonas, incidentes, alertas y radar de lluvia.
 - **7 fuentes de datos** con su protocolo: MQTT, Kafka, WebSocket, PROFINET, PROFIBUS DP, REST y SQL (D1). Panel "Fuentes" con estado, mensajes/min, latencia y último mensaje de cada una.
 - **Motor de reglas** (7 reglas) que cruza varias fuentes para generar alertas. Ejemplo: *choque (Kafka) + atasco (MQTT) + lluvia (REST)* en la misma zona.
 - **Recomendador de rutas A→B**: compara coche, bus, metro, bici y a pie, con y sin datos en vivo, y dice si la ingesta cambia la decisión.
 - **Escenarios de demo** (selector arriba): lluvia fuerte, choque en Glòries, viento fuerte. Garantizan que la demo siempre tenga algo que mostrar.
 - **Accidentes reales de 2024** (7.536 de la Guàrdia Urbana) con la **lluvia real** de esas horas. El panel *Lluvia/accidentes* calcula la relación entre ambas con una razón ajustada por hora del día y tipo de día, con intervalo de confianza. La línea de tiempo empieza en el día más lluvioso de 2024.
+- **Puerto**: botón *Encuadrar puerto* y etiquetas de Port Vell, Moll Adossat y Moll Prat. El recinto y esas posiciones están trazados a mano (aproximados).
 - **Puntos negros reales**: las 8 zonas del mapa son los puntos de Barcelona con más accidentes en 2024 (la nº 1, Corts Catalanes / Gràcia, tiene 123 a menos de 300 m).
-- **Árboles reales en 3D** (opcional, ver abajo): el arbolado viario de Open Data BCN (~240.000 ejemplares) con su posición y tipo reales, dibujado en 3D al acercar el mapa.
-- **Escena 3D** sin mapa (Three.js), con la misma línea de tiempo.
+- **Árboles reales en 3D** (opcional, ver abajo): el arbolado viario de Open Data BCN (146.849 ejemplares) con su posición y tipo reales, dibujado en 3D al acercar el mapa.
+- **Escena 3D** sin mapa (Three.js), con la misma línea de tiempo: cielo y luz según la hora del día (y más gris con lluvia), sombras, mar con oleaje, terreno con Collserola y Montjuïc, manzanas tipo Eixample en tonos de piedra, Sagrada Família y Torre Glòries esquemáticas. Con vistas predefinidas (Ciudad, Puerto, Montjuïc, Calle, Collserola) y **Tour** automático, brújula, minimapa y gráfico de accidentes reales y lluvia alrededor de la hora actual, coches que circulan más lentos cuanto mayor es la congestión, árboles de calle y bosque en las colinas, y **etiquetas de información** flotantes (tráfico y accidentes reales por punto negro, estado de cada línea de metro sobre su tren, grúas del puerto, tiempo). **Relieve, sol, bosque y edificios son aproximados**, no un modelo real de la ciudad.
 
 ## Qué es real y qué es simulado
 
@@ -61,7 +64,7 @@ Para usarlo: convierte el modelo a 3D Tiles, alójalo donde quieras (los fichero
 
 ## Árboles reales en 3D
 
-El CSV del arbolado viario pesa ~42 MB y no se sube al repositorio tal cual. Un script lo convierte en dos ficheros pequeños (~2 MB):
+El CSV del arbolado viario pesa ~42 MB y no se sube al repositorio tal cual. Un script lo convierte en dos ficheros pequeños (~1,3 MB):
 
 1. Descarga *Arbrat viari* (CSV) de [Open Data BCN](https://opendata-ajuntament.barcelona.cat) y descomprímelo.
 2. Ejecuta: `npm run trees -- ruta\al\arbrat-viari.csv` (o `node scripts/build-trees.mjs ruta/al/archivo.csv`).

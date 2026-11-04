@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { CENTER, PORT_POLY, RAIL_LINES } from './geo.js'
+import { CENTER, PORT_BOUNDS, PORT_PINS, PORT_POLY, RAIL_LINES } from './geo.js'
 import { createMetroLayer } from './metroLayer.js'
 import { createTreesLayer } from './treesLayer.js'
 
@@ -24,6 +24,37 @@ const GROUPS = {
   port: ['port-fill', 'port-line'],
 }
 
+
+// El estilo base (OpenFreeMap "liberty") es claro: lo oscurecemos por código para que case con la interfaz.
+// Se decide por el nombre de cada capa; si alguna propiedad no existe se ignora.
+function darkenBase(map) {
+  const set = (id, prop, val) => { try { map.setPaintProperty(id, prop, val) } catch { /* sin esa propiedad */ } }
+  for (const l of map.getStyle().layers) {
+    const id = l.id
+    if (l.type === 'background') set(id, 'background-color', '#0b0d11')
+    else if (l.type === 'fill') {
+      const c = /water|ocean|sea|lake|river/i.test(id) ? '#0d1b2a'
+        : /park|wood|forest|grass|green|landcover|garden|pitch|golf|cemetery|scrub/i.test(id) ? '#0f1a15'
+        : /building/i.test(id) ? '#171a20'
+        : /aeroway|runway|taxiway/i.test(id) ? '#1b1f27'
+        : '#12151a'
+      set(id, 'fill-color', c)
+    } else if (l.type === 'line') {
+      const c = /water|river|stream|canal/i.test(id) ? '#102338'
+        : /motorway|trunk|primary/i.test(id) ? '#3a4152'
+        : /secondary|tertiary/i.test(id) ? '#2d3340'
+        : /rail|transit|subway/i.test(id) ? '#232831'
+        : /boundary|admin/i.test(id) ? '#2a2f3a'
+        : /road|street|path|bridge|tunnel|service|minor|link|pedestrian|track/i.test(id) ? '#252a35'
+        : null
+      if (c) set(id, 'line-color', c)
+    } else if (l.type === 'symbol') {
+      set(id, 'text-color', '#8d96a6')
+      set(id, 'text-halo-color', '#0b0d11')
+    }
+  }
+}
+
 function accidentsGeo(accidents, from, to) {
   return { type: 'FeatureCollection', features: accidents.filter((a) => a.hourIdx >= from && a.hourIdx <= to).map((a) => pt(a.lon, a.lat, { sev: a.sev })) }
 }
@@ -38,6 +69,7 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
   const [ready, setReady] = useState(false)
   const [msg, setMsg] = useState('')
   const [trees, setTrees] = useState(null)
+  const portPins = useRef([])
 
   // ---- crear el mapa una vez
   useEffect(() => {
@@ -60,6 +92,7 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
 
     map.on('load', () => {
       const style = map.getStyle()
+      try { darkenBase(map) } catch { /* si falla, queda el estilo claro */ }
       // el estilo trae sus propios edificios 3D: los ocultamos y dibujamos los nuestros (con interruptor)
       style.layers.filter((l) => l.type === 'fill-extrusion').forEach((l) => map.setLayoutProperty(l.id, 'visibility', 'none'))
       const vec = Object.keys(style.sources).find((k) => style.sources[k].type === 'vector')
@@ -71,10 +104,10 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
           'source-layer': 'building',
           minzoom: 13,
           paint: {
-            'fill-extrusion-color': '#aeb9cf',
+            'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 8], 0, '#232a38', 60, '#3a4660'],
             'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
             'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
-            'fill-extrusion-opacity': 0.9,
+            'fill-extrusion-opacity': 0.92,
           },
         })
       }
@@ -90,8 +123,8 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
 
       // puerto
       map.addSource('port', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[...PORT_POLY, PORT_POLY[0]]] } } })
-      map.addLayer({ id: 'port-fill', type: 'fill', source: 'port', paint: { 'fill-color': '#3a86ff', 'fill-opacity': 0.22 } })
-      map.addLayer({ id: 'port-line', type: 'line', source: 'port', paint: { 'line-color': '#3a86ff', 'line-width': 1.5 } })
+      map.addLayer({ id: 'port-fill', type: 'fill', source: 'port', paint: { 'fill-color': '#4cc9f0', 'fill-opacity': 0.08 } })
+      map.addLayer({ id: 'port-line', type: 'line', source: 'port', paint: { 'line-color': '#4cc9f0', 'line-width': 1.5, 'line-dasharray': [3, 2], 'line-opacity': 0.8 } })
 
       // accidentes históricos simulados (mapa de calor de la semana + ventana de 6 h)
       map.addSource('acc-all', { type: 'geojson', data: accidentsGeo(dataRef.current.accidents, 0, 1e9) })
@@ -131,6 +164,15 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
         })
         .catch(() => {})
 
+      // etiquetas del puerto (posiciones aproximadas)
+      PORT_PINS.forEach((p) => {
+        const el = document.createElement('div')
+        el.className = 'map-pin'
+        el.innerHTML = `<i></i><span>${p.name}</span>`
+        portPins.current.push(el)
+        new maplibregl.Marker({ element: el, anchor: 'left' }).setLngLat([p.lon, p.lat]).addTo(map)
+      })
+
       map.on('click', 'zones-circle', (e) => {
         const p = e.features[0].properties
         new maplibregl.Popup({ closeButton: false }).setLngLat(e.lngLat).setText(`${p.name}: ${p.speed} km/h (habitual ${p.baseline}) · ${p.acc2024} accidentes reales en 2024 a menos de 300 m`).addTo(map)
@@ -159,6 +201,10 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
       ids.forEach((id) => map.getLayer(id) && map.setLayoutProperty(id, 'visibility', layers[key] ? 'visible' : 'none')),
     )
   }, [ready, layers])
+
+  useEffect(() => {
+    portPins.current.forEach((el) => (el.style.display = layers.port ? '' : 'none'))
+  }, [ready, layers.port])
 
   // ---- datos en vivo (zonas, incidentes, alertas)
   useEffect(() => {
@@ -190,6 +236,10 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
   useEffect(() => {
     const map = mapRef.current
     if (!ready || !map || !focus) return
+    if (focus.port) {
+      map.fitBounds(PORT_BOUNDS, { padding: 50, pitch: 45, bearing: -35, duration: 1600, maxZoom: 14 })
+      return
+    }
     map.flyTo({ center: [focus.lon, focus.lat], zoom: 14.3, pitch: 65, duration: 1400 })
   }, [ready, focus])
 

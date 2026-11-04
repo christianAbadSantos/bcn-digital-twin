@@ -1,0 +1,108 @@
+{
+ "n": 146849,
+ "formato": "trees.bin = n × (Int32 lon·1e6, Int32 lat·1e6) little-endian, luego n × Uint8 grupo (0 frondosa, 1 palmera, 2 conífera)",
+ "grupos": {
+  "frondosa": 139539,
+  "palmera": 4729,
+  "conifera": 2581
+ },
+ "calidad": {
+  "filas": 146849,
+  "validos": 146849,
+  "sinCoordenadas": 0,
+  "fueraDeBarcelona": 0,
+  "duplicados": 0,
+  "columnasIncorrectas": 0,
+  "sinEspecie": 0
+ },
+ "tiposDeElemento": {
+  "ARBRE VIARI": 142147,
+  "PALMERA VIARI": 4702
+ },
+ "especiesTop": [
+  {
+   "nombre": "Platanus × acerifolia",
+   "total": 40921
+  },
+  {
+   "nombre": "Celtis australis",
+   "total": 19487
+  },
+  {
+   "nombre": "Styphnolobium japonicum",
+   "total": 8334
+  },
+  {
+   "nombre": "Tipuana tipu",
+   "total": 6762
+  },
+  {
+   "nombre": "Melia azedarach",
+   "total": 6032
+  },
+  {
+   "nombre": "Brachychiton populneus",
+   "total": 5333
+  },
+  {
+   "nombre": "Prunus cerasifera 'Pissardii'",
+   "total": 3347
+  },
+  {
+   "nombre": "Ligustrum lucidum",
+   "total": 3277
+  },
+  {
+   "nombre": "Jacaranda mimosifolia",
+   "total": 3023
+  },
+  {
+   "nombre": "Ulmus pumila",
+   "total": 2957
+  },
+  {
+   "nombre": "Pyrus calleryana 'Chanticleer'",
+   "total": 2788
+  },
+  {
+   "nombre": "Cercis siliquastrum",
+   "total": 2783
+  },
+  {
+   "nombre": "Citrus × aurantium",
+   "total": 2493
+  },
+  {
+   "nombre": "Robinia pseudoacacia",
+   "total": 2433
+  },
+  {
+   "nombre": "Washingtonia filifera var. robusta",
+   "total": 1903
+  }
+ ],
+ "barriosTop": [
+  {
+   "nombre": "LA DRETA DE LEIXAMPLE",
+   "total": 6049
+  },
+  {
+   "nombre": "SANT ANDREU",
+   "total": 5091
+  },
+  {
+   "nombre": "LES CORTS",
+   "total": 4991
+  },
+  {
+   "nombre": "EL POBLE SEC",
+   "total": 4935
+  },
+  {
+   "nombre": "PEDRALBES",
+   "total": 4327
+  }
+ ],
+ "fuente": "Open Data BCN · Arbrat viari · Ajuntament de Barcelona",
+ "generado": "2026-11-04"
+}
