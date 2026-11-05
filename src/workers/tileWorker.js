@@ -183,7 +183,8 @@ function buildBuildings(feats, z, x, y, dem, exclude, minArea = 0) {
       // colores: técnico (por altura) y realista (colour de OSM o piedra)
       const k = Math.min(1, hgt / 80)
       const v = (hash(fi) - 0.5) * 14
-      const tech = [42 + 30 * k + v, 50 + 40 * k + v, 71 + 55 * k + v]
+      // técnico claro: blanco roto, algo más azul-gris cuanto más alto
+      const tech = [246 - 52 * k + v, 247 - 44 * k + v, 250 - 30 * k + v]
       const real = hex(f.props.colour) || NAMED[String(f.props.colour || '').toLowerCase()] || STONE[Math.floor(hash(fi * 7) * STONE.length)]
       const pushV = (px, py, pz, nx, ny, nz, shade) => {
         pos.push(px, py, pz)
@@ -263,7 +264,7 @@ function buildTerrain(z, x, y, dem, N) {
 
 // ---- textura vectorial (estilo técnico o plano claro)
 const PAL = {
-  tech: { bg: '#12151b', water: '#0c1a29', park: '#122019', wood: '#10201a', major: '#3a4152', minor: '#262c38', rail: '#2a2f3a', path: '#1c2029' },
+  tech: { bg: '#eceef1', water: '#d3e3f1', park: '#dde8d9', wood: '#cfdfca', major: '#ffffff', minor: '#fafbfc', rail: '#c3c8d0', path: '#e2e5ea' },
   map: { bg: '#e8e4da', water: '#a9cbe3', park: '#bfd8a4', wood: '#a9c98e', major: '#ffffff', minor: '#f6f3ec', rail: '#b7b2a8', path: '#ddd6c8' },
 }
 function paint(layers, palette, size) {

@@ -78,11 +78,11 @@ function Terrain({ tech }) {
     g.rotateX(-Math.PI / 2)
     const pos = g.attributes.position
     const colors = new Float32Array(pos.count * 3)
-    const urban = new THREE.Color(tech ? '#15171d' : '#585b62')
-    const grass = new THREE.Color(tech ? '#1b2233' : '#58863a')
-    const forest = new THREE.Color(tech ? '#222c44' : '#2f5a2c')
-    const rock = new THREE.Color(tech ? '#3b4766' : '#78705a')
-    const soil = new THREE.Color(tech ? '#1a2030' : '#5d5037')
+    const urban = new THREE.Color(tech ? '#e8eaee' : '#585b62')
+    const grass = new THREE.Color(tech ? '#dde7d9' : '#58863a')
+    const forest = new THREE.Color(tech ? '#cbdac6' : '#2f5a2c')
+    const rock = new THREE.Color(tech ? '#c9ccd3' : '#78705a')
+    const soil = new THREE.Color(tech ? '#e2ddd3' : '#5d5037')
     const c = new THREE.Color()
     const sm = (a, b, v) => Math.min(1, Math.max(0, (v - a) / (b - a)))
     for (let i = 0; i < pos.count; i++) {
@@ -106,13 +106,13 @@ function Terrain({ tech }) {
   }, [tech])
   return (
     <group>
-      {tech && <gridHelper args={[300, 150, '#2b303b', '#1a1d25']} position={[0, 0.012, 0]} />}
+      {tech && <gridHelper args={[300, 150, '#cfd4dc', '#e1e4e9']} position={[0, 0.012, 0]} />}
       <mesh geometry={geo} receiveShadow>
         <meshStandardMaterial vertexColors roughness={0.95} />
       </mesh>
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.06, 0]}>
         <planeGeometry args={[4000, 4000]} />
-        <meshStandardMaterial color={tech ? '#0a0b0e' : '#4d5e40'} roughness={1} />
+        <meshStandardMaterial color={tech ? '#eceef1' : '#4d5e40'} roughness={1} />
       </mesh>
     </group>
   )
@@ -156,7 +156,7 @@ function Sea({ tech }) {
   })
   return (
     <mesh geometry={geo} rotation-x={-Math.PI / 2} position={[0, 0.03, 0]} receiveShadow>
-      <meshStandardMaterial color={tech ? '#176079' : '#2c7199'} emissive={tech ? '#04202b' : '#000000'} map={tex} roughness={0.28} metalness={0.2} />
+      <meshStandardMaterial color={tech ? '#b9d2e8' : '#2c7199'} emissive={tech ? '#000000' : '#000000'} map={tex} roughness={0.28} metalness={0.2} />
     </mesh>
   )
 }
@@ -164,7 +164,7 @@ function Sea({ tech }) {
 // ---------- Ciudad: bloques tipo Eixample (instanciados) ----------
 const STONE = ['#c9b8a0', '#bfae95', '#d6c8b0', '#b5a58f', '#cdbba5', '#a99a86', '#d2c2a8']
 // estilo técnico (visor BIM): pizarra, azul marino y algún cristal verdoso
-const SLATE = ['#4a5075', '#3a4268', '#5c6285', '#2f3658', '#6a7090', '#46507a', '#2f6272']
+const SLATE = ['#ffffff', '#f3f4f7', '#e9ecf1', '#dfe3ea', '#f8f9fb', '#e5e9f0', '#d8dee8']
 const STEP = 1.5 // ~150 m entre centros de manzana
 const R_CITY = 62
 
@@ -356,7 +356,7 @@ function Landmarks() {
 function Shore({ tech }) {
   const line = useMemo(() => {
     const pts = COAST.map((c) => new THREE.Vector3(...P(c)).setY(0.06))
-    return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: tech ? '#4cc9f0' : '#e8f4ff', transparent: true, opacity: 0.55 }))
+    return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: tech ? '#2a78d6' : '#e8f4ff', transparent: true, opacity: 0.55 }))
   }, [tech])
   return <primitive object={line} />
 }
@@ -398,7 +398,7 @@ function Forest() {
 }
 
 // ---------- Puntos de información flotantes ----------
-function Pin({ pos, h = 1.1, color = '#ffd400', title, lines = [], tone = '' }) {
+function Pin({ pos, h = 1.1, color = '#184f95', title, lines = [], tone = '' }) {
   const ref = useRef()
   const label = useRef()
   useGround(ref, pos[0], pos[2], pos[1])
@@ -439,7 +439,7 @@ const PT = (c) => {
   return [x, terrainH(x, z), z]
 }
 const ratioTone = (r) => (r < 0.6 ? 'bad' : r < 0.85 ? 'warn' : 'ok')
-const ratioColor = { bad: '#ff4d5e', warn: '#ff9f1c', ok: '#34c77b' }
+const ratioColor = { bad: '#d03b3b', warn: '#fab219', ok: '#0ca30c' }
 const SHOWN_PLACES = ['catalunya', 'portvell', 'espanya', 'campnou', 'vallhebron', 'aeroport']
 
 function InfoPins({ live, data, hour, visible }) {
@@ -458,13 +458,13 @@ function InfoPins({ live, data, hour, visible }) {
         )
       })}
       {PLACES.filter((p) => SHOWN_PLACES.includes(p.id)).map((p) => (
-        <Pin key={p.id} pos={P([p.lon, p.lat])} h={0.75} color="#9aa3b2" title={p.name} />
+        <Pin key={p.id} pos={P([p.lon, p.lat])} h={0.75} color="#6b7280" title={p.name} />
       ))}
-      <Pin pos={PT([2.1186, 41.4225])} h={0.8} color="#9aa3b2" title="Tibidabo" lines={['512 m']} />
-      <Pin pos={PT([2.1655, 41.364])} h={0.8} color="#9aa3b2" title="Montjuïc" lines={['173 m']} />
-      <Pin pos={P([2.1894, 41.4036])} h={1.9} color="#9aa3b2" title="Torre Glòries" lines={['144 m']} />
-      <Pin pos={P(PORT_CENTER)} h={1.5} color="#4cc9f0" title="Puerto · grúas" lines={[`${run}/${live.port?.length ?? 0} en marcha`, `${boxes} contenedores/h (simulado)`]} />
-      <Pin pos={P([2.225, 41.372])} h={2.1} color="#ffd400" title="Tiempo" lines={[`Lluvia ${w.rain.toFixed(1)} mm/h`, `Viento ${Math.round(w.wind)} km/h · ${Math.round(w.temp)} °C`, `${nAcc} accidentes reales en las últimas 24 h`]} />
+      <Pin pos={PT([2.1186, 41.4225])} h={0.8} color="#6b7280" title="Tibidabo" lines={['512 m']} />
+      <Pin pos={PT([2.1655, 41.364])} h={0.8} color="#6b7280" title="Montjuïc" lines={['173 m']} />
+      <Pin pos={P([2.1894, 41.4036])} h={1.9} color="#6b7280" title="Torre Glòries" lines={['144 m']} />
+      <Pin pos={P(PORT_CENTER)} h={1.5} color="#2a78d6" title="Puerto · grúas" lines={[`${run}/${live.port?.length ?? 0} en marcha`, `${boxes} contenedores/h (simulado)`]} />
+      <Pin pos={P([2.225, 41.372])} h={2.1} color="#184f95" title="Tiempo" lines={[`Lluvia ${w.rain.toFixed(1)} mm/h`, `Viento ${Math.round(w.wind)} km/h · ${Math.round(w.temp)} °C`, `${nAcc} accidentes reales en las últimas 24 h`]} />
     </group>
   )
 }
@@ -515,16 +515,16 @@ function MiniMap({ live, dotRef }) {
   const sea = `M${coast.map((q) => q.join(',')).join(' L')} L160,120 L0,120 L0,${coast[0][1]} Z`
   return (
     <svg viewBox="0 0 160 120" className="minimap">
-      <rect width="160" height="120" fill="#12151a" />
-      <path d={sea} fill="#10253a" />
+      <rect width="160" height="120" fill="#eef0f2" />
+      <path d={sea} fill="#d3e3f1" />
       {RAIL_PATHS.map((l) => (
         <polyline key={l.id} fill="none" stroke={l.color} strokeWidth="1" opacity="0.8" points={l.coords.map((c) => { const [x, , z] = P(c); return `${80 + (x / 75) * 80},${60 + (z / 75) * 60}` }).join(' ')} />
       ))}
       {live?.zones.map((z) => {
         const [x, , zz] = P([z.lon, z.lat])
-        return <circle key={z.id} cx={80 + (x / 75) * 80} cy={60 + (zz / 75) * 60} r="3" fill={z.ratio < 0.6 ? '#ff4d5e' : z.ratio < 0.85 ? '#ff9f1c' : '#34c77b'} />
+        return <circle key={z.id} cx={80 + (x / 75) * 80} cy={60 + (zz / 75) * 60} r="3" fill={z.ratio < 0.6 ? '#d03b3b' : z.ratio < 0.85 ? '#fab219' : '#0ca30c'} />
       })}
-      <circle ref={dotRef} cx="80" cy="60" r="3.2" fill="none" stroke="#ffd400" strokeWidth="1.5" />
+      <circle ref={dotRef} cx="80" cy="60" r="3.2" fill="none" stroke="#184f95" strokeWidth="1.8" />
     </svg>
   )
 }
@@ -541,9 +541,9 @@ function Spark({ data, hour }) {
   const cur = (hour - lo) * bw
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="spark">
-      <path d={rainPath} fill="none" stroke="#4c9dff" strokeWidth="1.2" opacity="0.9" />
-      {idx.map((i, k) => (data.perHour[i] ? <rect key={i} x={k * bw} y={H - (data.perHour[i] / maxA) * H} width={Math.max(1, bw - 0.6)} height={(data.perHour[i] / maxA) * H} fill="#ffd400" opacity="0.85" /> : null))}
-      <line x1={cur} x2={cur} y1="0" y2={H} stroke="#fff" strokeWidth="1" />
+      <path d={rainPath} fill="none" stroke="#1baf7a" strokeWidth="1.2" opacity="0.9" />
+      {idx.map((i, k) => (data.perHour[i] ? <rect key={i} x={k * bw} y={H - (data.perHour[i] / maxA) * H} width={Math.max(1, bw - 0.6)} height={(data.perHour[i] / maxA) * H} fill="#2a78d6" opacity="0.85" /> : null))}
+      <line x1={cur} x2={cur} y1="0" y2={H} stroke="#101828" strokeWidth="1" />
     </svg>
   )
 }
@@ -690,7 +690,7 @@ function Port({ visible }) {
 }
 
 // ---------- Lluvia (partículas) ----------
-function Rain({ mm, visible }) {
+function Rain({ mm, visible, tech }) {
   const N = 5000
   const ref = useRef()
   const pos = useMemo(() => {
@@ -719,7 +719,7 @@ function Rain({ mm, visible }) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" array={pos} count={N} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial color="#9bd7ff" size={0.35} transparent opacity={0.7} />
+      <pointsMaterial color={tech ? '#5b8fc7' : '#9bd7ff'} size={0.35} transparent opacity={0.7} />
     </points>
   )
 }
@@ -728,7 +728,7 @@ function Rain({ mm, visible }) {
 function Pulse({ a, age }) {
   const g = useRef()
   const [x, , z] = P([a.lon, a.lat])
-  const color = a.sev === 'grave' ? '#ff4d6d' : a.sev === 'moderado' ? '#ff9f1c' : '#ffd166'
+  const color = a.sev === 'grave' ? '#d03b3b' : a.sev === 'moderado' ? '#ec835a' : '#fab219'
   useFrame(({ clock }) => {
     const s = 1 + 0.35 * Math.sin(clock.elapsedTime * 4 + a.hourIdx)
     g.current.scale.set(s, 1, s)
@@ -814,14 +814,14 @@ export default function ThreeTwin({ data, hour, layers, live }) {
       <Canvas shadows={tier.shadows} camera={{ position: [0, 38, 78], fov: 50, near: 0.02, far: 3000 }} dpr={tier.dpr} gl={{ powerPreference: 'high-performance', antialias: tier.key !== 'low' }}>
         {/* si los FPS reales no llegan, baja el perfil (menos radio, menos resolución, sin sombras) */}
         <PerformanceMonitor flipflops={2} onDecline={() => setTier((t) => (t.key === 'low' ? t : lowerTier(t)))} />
-        <color attach="background" args={[tech ? '#08090c' : sky.horizon]} />
-        <fog attach="fog" args={osm ? [tech ? '#08090c' : sky.horizon, tier.osmRadius / 100 * 1.2, tier.osmRadius / 100 * 3.2] : [tech ? '#08090c' : sky.horizon, tech ? 90 : 70, tech ? 420 : 460]} />
+        <color attach="background" args={[tech ? '#eef1f5' : sky.horizon]} />
+        <fog attach="fog" args={osm ? [tech ? '#eef1f5' : sky.horizon, tier.osmRadius / 100 * 1.2, tier.osmRadius / 100 * 3.2] : [tech ? '#eef1f5' : sky.horizon, tech ? 90 : 70, tech ? 420 : 460]} />
         {!tech && <Sky sky={sky} />}
-        <hemisphereLight args={tech ? ['#9fb0d8', '#0b0c10', 0.9] : [sky.hemiSky, sky.hemiGround, sky.hemiIntensity]} />
+        <hemisphereLight args={tech ? ['#ffffff', '#b9c0cc', 1.05] : [sky.hemiSky, sky.hemiGround, sky.hemiIntensity]} />
         <directionalLight
           position={tech ? [70, 100, 55] : [lx, ly, lz]}
-          color={tech ? '#dfe6ff' : sky.lightColor}
-          intensity={tech ? 1.15 : sky.lightIntensity}
+          color={tech ? '#ffffff' : sky.lightColor}
+          intensity={tech ? 1.5 : sky.lightIntensity}
           castShadow
           shadow-mapSize={tier.key === 'high' ? [2048, 2048] : [1024, 1024]}
           shadow-camera-left={-75}
@@ -837,7 +837,7 @@ export default function ThreeTwin({ data, hour, layers, live }) {
             <OsmCity key={tier.key} tier={tier} tech={tech} imagery={imagery} onStats={setStats} />
             <PortIfc tier={tier} visible={layers.port} onStatus={setIfc} />
             {layers.labels && LANDMARKS.map((l) => (
-              <Pin key={l.id} pos={P([l.lon, l.lat])} h={l.h * S + 0.35} color="#e8c46a" title={l.name} lines={l.note ? [l.note] : []} />
+              <Pin key={l.id} pos={P([l.lon, l.lat])} h={l.h * S + 0.35} color="#184f95" title={l.name} lines={l.note ? [l.note] : []} />
             ))}
           </>
         ) : (
@@ -854,11 +854,11 @@ export default function ThreeTwin({ data, hour, layers, live }) {
         )}
         <Rails visible={layers.metro} live={live} />
         <Port visible={layers.port} />
-        <Rain mm={mm} visible={layers.rain} />
+        <Rain mm={mm} visible={layers.rain} tech={tech} />
         <Accidents data={data} hour={hour} visible={layers.accidents} />
         <InfoPins live={live} data={data} hour={hour} visible={layers.labels} />
         {layers.fiware && live?.fiware?.entities.map((e) => (
-          <Pin key={e.id} pos={P([e.lon, e.lat])} h={0.9} color={ratioColor[e.level] || '#4cc9f0'} tone={e.level} title={`FIWARE · ${e.title}`} lines={[`${e.value ?? '—'} ${e.unit}${e.extra ? ' · ' + e.extra : ''}`]} />
+          <Pin key={e.id} pos={P([e.lon, e.lat])} h={0.9} color={ratioColor[e.level] || '#2a78d6'} tone={e.level} title={`FIWARE · ${e.title}`} lines={[`${e.value ?? '—'} ${e.unit}${e.extra ? ' · ' + e.extra : ''}`]} />
         ))}
         <CameraRig goto={goto} controls={controls} />
         <CamProbe dotRef={dot} />

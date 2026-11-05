@@ -25,9 +25,9 @@ function Chart({ data, hour, onPick }) {
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="chart" onClick={pick} role="img" aria-label="Lluvia y accidentes por hora, semana seleccionada">
-      {data.rainOk && rain.map((r, k) => <rect key={k} x={k * bw} y={H - (r / maxRain) * (H - 8)} width={Math.max(bw - 0.3, 0.5)} height={(r / maxRain) * (H - 8)} fill="#4cc9f0" opacity="0.75" />)}
-      <polyline points={pts} fill="none" stroke="#ff4d6d" strokeWidth="1.2" />
-      <line x1={(hour - start + 0.5) * bw} x2={(hour - start + 0.5) * bw} y1="0" y2={H} stroke="#fff" strokeWidth="1" />
+      {data.rainOk && rain.map((r, k) => <rect key={k} x={k * bw} y={H - (r / maxRain) * (H - 8)} width={Math.max(bw - 0.3, 0.5)} height={(r / maxRain) * (H - 8)} fill="#1baf7a" opacity="0.75" />)}
+      <polyline points={pts} fill="none" stroke="#2a78d6" strokeWidth="2" />
+      <line x1={(hour - start + 0.5) * bw} x2={(hour - start + 0.5) * bw} y1="0" y2={H} stroke="#101828" strokeWidth="1" />
     </svg>
   )
 }
@@ -61,8 +61,8 @@ export default function Panel({ data, hour, onPick }) {
 
       <Chart data={data} hour={hour} onPick={onPick} />
       <div className="legend">
-        <span><i style={{ background: '#4cc9f0' }} /> lluvia (mm/h)</span>
-        <span><i style={{ background: '#ff4d6d' }} /> accidentes/h</span>
+        <span><i style={{ background: '#1baf7a' }} /> lluvia (mm/h)</span>
+        <span><i style={{ background: '#2a78d6' }} /> accidentes/h</span>
       </div>
       {data.rainOk && <button className="btn small" onClick={() => onPick(stats.rainiestDay * 24 + 12)}>Ir al día más lluvioso ({data.times[stats.rainiestDay * 24].slice(0, 10)}, {Math.round(stats.rainiestMm)} mm)</button>}
 
