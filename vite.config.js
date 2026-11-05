@@ -12,6 +12,7 @@ export default defineConfig({
       '/api/ifc': {
         target: 'https://serveis.portdebarcelona.cat',
         changeOrigin: true,
+        headers: { 'user-agent': 'bcn-digital-twin/0.5 (+https://bcn-digital-twin.pages.dev)' },
         rewrite: (p) => '/cataleg_bim_planol/IFC/' + new URLSearchParams(p.split('?')[1] || '').get('f'),
       },
     },

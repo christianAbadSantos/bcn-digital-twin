@@ -6,6 +6,8 @@
 //   FIWARE_TOKEN        token (X-Auth-Token, p. ej. Keyrock/Wilma) (opcional, secreto)
 // Así el token no llega al navegador y el broker no necesita CORS.
 // Si hay un bucket R2 enlazado como BUCKET, guarda una instantánea por minuto (histórico barato).
+import { USER_AGENT } from '../_lib/ua.js'
+
 const ALLOWED = /^\/(v2\/entities|ngsi-ld\/v1\/entities)(\?|$)/
 const LD_CONTEXT = 'https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld'
 const TTL = 10
@@ -21,7 +23,7 @@ export async function onRequestGet({ request, env, waitUntil }) {
   const hit = await cache.match(key)
   if (hit) return hit
 
-  const headers = { accept: 'application/json' }
+  const headers = { accept: 'application/json', 'user-agent': USER_AGENT }
   if (env.FIWARE_SERVICE) headers['Fiware-Service'] = env.FIWARE_SERVICE
   if (env.FIWARE_SERVICEPATH) headers['Fiware-ServicePath'] = env.FIWARE_SERVICEPATH
   if (env.FIWARE_TOKEN) headers['X-Auth-Token'] = env.FIWARE_TOKEN

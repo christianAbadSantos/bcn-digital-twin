@@ -2,6 +2,8 @@
 // Sirve modelos de la Biblioteca IFC del Port de Barcelona (CC BY 4.0). Su servidor no permite CORS,
 // así que se piden desde aquí. Con un bucket R2 enlazado como BUCKET, cada IFC se descarga del Port
 // UNA sola vez y después se sirve desde R2 (gratis hasta 10 GB y sin coste de salida).
+import { USER_AGENT } from '../_lib/ua.js'
+
 const SRC = 'https://serveis.portdebarcelona.cat/cataleg_bim_planol/IFC/'
 const NAME = /^APBCN-[A-Za-z0-9_ñÑçÇ-]+_LOD[1-3](_red)?\.ifc$/
 
@@ -14,7 +16,7 @@ export async function onRequestGet({ request, env, waitUntil }) {
     const obj = await env.BUCKET.get(`ifc/${f}`)
     if (obj) return new Response(obj.body, { headers: { ...headers, 'x-source': 'r2' } })
   }
-  const r = await fetch(SRC + encodeURIComponent(f), { cf: { cacheTtl: 86400, cacheEverything: true } })
+  const r = await fetch(SRC + encodeURIComponent(f), { headers: { 'user-agent': USER_AGENT }, cf: { cacheTtl: 86400, cacheEverything: true } })
   if (!r.ok) return new Response(`el Port respondió ${r.status}`, { status: 502 })
   if (!env.BUCKET) return new Response(r.body, { headers })
   const len = Number(r.headers.get('content-length'))

@@ -1,12 +1,14 @@
 // Conector REST real: tiempo actual de Barcelona (Open-Meteo, sin clave).
 // Se cachea 10 min en el borde de Cloudflare para gastar casi nada de cuota.
+import { USER_AGENT } from './ua.js'
+
 const URL =
   'https://api.open-meteo.com/v1/forecast?latitude=41.3851&longitude=2.1734' +
   '&current=precipitation,wind_speed_10m,temperature_2m&timezone=Europe%2FMadrid'
 
 export async function getWeather() {
   try {
-    const r = await fetch(URL, { cf: { cacheTtl: 600, cacheEverything: true } })
+    const r = await fetch(URL, { headers: { 'user-agent': USER_AGENT }, cf: { cacheTtl: 600, cacheEverything: true } })
     if (!r.ok) throw new Error(`open-meteo ${r.status}`)
     const j = await r.json()
     return {
