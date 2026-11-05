@@ -41,7 +41,7 @@ export default function SourcesPanel({ live, mode, hist, paused, onResume }) {
           <div className="src-top">
             <span className={`dot2 ${s.status}`} title={STATUS[s.status]} />
             <b>{s.protocol}</b>
-            <span className="tag">{s.simulated ? 'simulado' : 'real'}</span>
+            <span className="tag">{s.status === 'idle' ? 'sin configurar' : s.id === 'fiware' && s.endpoint.startsWith('muestra') ? 'muestra' : s.simulated ? 'simulado' : 'real'}</span>
             <span className="src-r">{s.msgPerMin} msg/min · {s.latencyMs} ms</span>
           </div>
           <div className="src-label">{s.label}</div>
@@ -56,7 +56,8 @@ export default function SourcesPanel({ live, mode, hist, paused, onResume }) {
       <p className="note">
         Los conectores simulados generan mensajes con la forma de cada protocolo (topic MQTT, partición y offset de Kafka,
         esclavo Profibus, frame Profinet). Para producción se sustituye cada conector por su driver real y las reglas no cambian.
-        Solo el conector REST (Open-Meteo) trae datos reales.
+        El conector REST (Open-Meteo) trae datos reales, y el de FIWARE también cuando hay un Context Broker configurado
+        (Smart Data Models por NGSI-v2 o NGSI-LD).
       </p>
     </div>
   )

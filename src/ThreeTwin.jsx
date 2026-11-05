@@ -1,10 +1,26 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Html } from '@react-three/drei'
+import { OrbitControls, Html, PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 import { COAST, PLACES, PORT_CENTER, RAIL_PATHS, SHIP_PATHS, toLocal, pingPong } from './geo.js'
 import { mulberry32 } from './sim.js'
 import { S, terrainH, skyState } from './scene3d.js'
+import OsmCity from './OsmCity.jsx'
+import PortIfc from './PortIfc.jsx'
+import { LANDMARKS } from './landmarks.js'
+import { detectTier, lowerTier } from './deviceTier.js'
+import { groundY } from './ground.js'
+import { IMAGERY, DEM_SOURCES } from './tileMath.js'
+import { PORT_BIM_CATALOG } from './portBim.js'
+
+// Sigue la cota del relieve real (si está cargado); si no, usa la y que se le da
+function useGround(ref, x, z, y0, dy = 0) {
+  useFrame(() => {
+    if (!ref.current) return
+    const g = groundY(x, z)
+    ref.current.position.y = (g ?? y0) + dy
+  })
+}
 // [lon,lat] -> posición de escena (x = este, z = -norte)
 const P = (c) => {
   const [e, n] = toLocal(c)
@@ -56,17 +72,17 @@ function Sky({ sky }) {
 }
 
 // ---------- Terreno con relieve aproximado (Collserola, Montjuïc) ----------
-function Terrain() {
+function Terrain({ tech }) {
   const geo = useMemo(() => {
     const g = new THREE.PlaneGeometry(300, 300, 240, 240)
     g.rotateX(-Math.PI / 2)
     const pos = g.attributes.position
     const colors = new Float32Array(pos.count * 3)
-    const urban = new THREE.Color('#585b62')
-    const grass = new THREE.Color('#58863a')
-    const forest = new THREE.Color('#2f5a2c')
-    const rock = new THREE.Color('#78705a')
-    const soil = new THREE.Color('#5d5037')
+    const urban = new THREE.Color(tech ? '#15171d' : '#585b62')
+    const grass = new THREE.Color(tech ? '#1b2233' : '#58863a')
+    const forest = new THREE.Color(tech ? '#222c44' : '#2f5a2c')
+    const rock = new THREE.Color(tech ? '#3b4766' : '#78705a')
+    const soil = new THREE.Color(tech ? '#1a2030' : '#5d5037')
     const c = new THREE.Color()
     const sm = (a, b, v) => Math.min(1, Math.max(0, (v - a) / (b - a)))
     for (let i = 0; i < pos.count; i++) {
@@ -87,22 +103,23 @@ function Terrain() {
     g.setAttribute('color', new THREE.BufferAttribute(colors, 3))
     g.computeVertexNormals()
     return g
-  }, [])
+  }, [tech])
   return (
     <group>
+      {tech && <gridHelper args={[300, 150, '#2b303b', '#1a1d25']} position={[0, 0.012, 0]} />}
       <mesh geometry={geo} receiveShadow>
         <meshStandardMaterial vertexColors roughness={0.95} />
       </mesh>
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.06, 0]}>
         <planeGeometry args={[4000, 4000]} />
-        <meshStandardMaterial color="#4d5e40" roughness={1} />
+        <meshStandardMaterial color={tech ? '#0a0b0e' : '#4d5e40'} roughness={1} />
       </mesh>
     </group>
   )
 }
 
 // ---------- Mar con oleaje animado ----------
-function Sea() {
+function Sea({ tech }) {
   const geo = useMemo(() => {
     const shape = new THREE.Shape()
     const pts = [...COAST.map((c) => toLocal(c)), toLocal([2.9, 41.9]), toLocal([2.9, 40.8]), toLocal([1.5, 40.8])]
@@ -139,13 +156,15 @@ function Sea() {
   })
   return (
     <mesh geometry={geo} rotation-x={-Math.PI / 2} position={[0, 0.03, 0]} receiveShadow>
-      <meshStandardMaterial color="#2c7199" map={tex} roughness={0.28} metalness={0.2} />
+      <meshStandardMaterial color={tech ? '#176079' : '#2c7199'} emissive={tech ? '#04202b' : '#000000'} map={tex} roughness={0.28} metalness={0.2} />
     </mesh>
   )
 }
 
 // ---------- Ciudad: bloques tipo Eixample (instanciados) ----------
 const STONE = ['#c9b8a0', '#bfae95', '#d6c8b0', '#b5a58f', '#cdbba5', '#a99a86', '#d2c2a8']
+// estilo técnico (visor BIM): pizarra, azul marino y algún cristal verdoso
+const SLATE = ['#4a5075', '#3a4268', '#5c6285', '#2f3658', '#6a7090', '#46507a', '#2f6272']
 const STEP = 1.5 // ~150 m entre centros de manzana
 const R_CITY = 62
 
@@ -176,7 +195,7 @@ const GRID = (() => {
   return { ang, cos, sin, toW, urban, blocks }
 })()
 
-function City() {
+function City({ tech }) {
   const ref = useRef()
   useLayoutEffect(() => {
     const m = new THREE.Object3D()
@@ -187,11 +206,11 @@ function City() {
       m.scale.set(1.15, it.h, 1.15)
       m.updateMatrix()
       ref.current.setMatrixAt(i, m.matrix)
-      ref.current.setColorAt(i, col.set(STONE[it.c]).offsetHSL(0, 0, (((i * 37) % 11) - 5) * 0.006))
+      ref.current.setColorAt(i, col.set((tech ? SLATE : STONE)[it.c]).offsetHSL(0, 0, (((i * 37) % 11) - 5) * 0.006))
     })
     ref.current.instanceMatrix.needsUpdate = true
     ref.current.instanceColor.needsUpdate = true
-  }, [])
+  }, [tech])
   return (
     <instancedMesh ref={ref} args={[null, null, GRID.blocks.length]} castShadow receiveShadow>
       <boxGeometry args={[1, 1, 1]} />
@@ -248,7 +267,7 @@ function StreetTrees() {
 
 // ---------- Tráfico: coches por las calles de la rejilla (velocidad ligada a la congestión real/simulada) ----------
 const CAR_COLORS = ['#f2f2f2', '#d9d9d9', '#1b1d22', '#8a8f98', '#b3262e', '#2f5d9e', '#e7b416', '#3f7a52']
-function Cars({ live }) {
+function Cars({ live, tech }) {
   const ref = useRef()
   const speedRef = useRef(1)
   speedRef.current = live ? Math.min(1, Math.max(0.25, live.zones.reduce((s, z) => s + z.ratio, 0) / live.zones.length)) : 1
@@ -302,7 +321,7 @@ function Cars({ live }) {
   return (
     <instancedMesh ref={ref} args={[null, null, cars.length]} castShadow>
       <boxGeometry args={[0.075, 0.03, 0.032]} />
-      <meshStandardMaterial roughness={0.45} metalness={0.4} />
+      <meshStandardMaterial roughness={0.45} metalness={0.4} emissive={tech ? '#ffffff' : '#000000'} emissiveIntensity={tech ? 0.25 : 0} />
     </instancedMesh>
   )
 }
@@ -334,11 +353,11 @@ function Landmarks() {
 
 
 // ---------- Línea de costa (espuma) ----------
-function Shore() {
+function Shore({ tech }) {
   const line = useMemo(() => {
     const pts = COAST.map((c) => new THREE.Vector3(...P(c)).setY(0.06))
-    return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#e8f4ff', transparent: true, opacity: 0.55 }))
-  }, [])
+    return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: tech ? '#4cc9f0' : '#e8f4ff', transparent: true, opacity: 0.55 }))
+  }, [tech])
   return <primitive object={line} />
 }
 
@@ -380,8 +399,20 @@ function Forest() {
 
 // ---------- Puntos de información flotantes ----------
 function Pin({ pos, h = 1.1, color = '#ffd400', title, lines = [], tone = '' }) {
+  const ref = useRef()
+  const label = useRef()
+  useGround(ref, pos[0], pos[2], pos[1])
+  // etiqueta de tamaño fijo en pantalla: compacta de lejos, oculta muy lejos (no tapa la escena al acercarse)
+  const wp = useMemo(() => new THREE.Vector3(), [])
+  useFrame(({ camera }) => {
+    if (!label.current || !ref.current) return
+    ref.current.getWorldPosition(wp)
+    const d = camera.position.distanceTo(wp)
+    label.current.style.display = d > 140 ? 'none' : ''
+    label.current.classList.toggle('compact', d > 22)
+  })
   return (
-    <group position={pos}>
+    <group position={pos} ref={ref}>
       <mesh position={[0, h / 2, 0]}>
         <cylinderGeometry args={[0.012, 0.012, h, 6]} />
         <meshBasicMaterial color={color} transparent opacity={0.75} />
@@ -390,8 +421,8 @@ function Pin({ pos, h = 1.1, color = '#ffd400', title, lines = [], tone = '' }) 
         <sphereGeometry args={[0.07, 16, 12]} />
         <meshBasicMaterial color={color} />
       </mesh>
-      <Html position={[0, h + 0.1, 0]} center distanceFactor={55} zIndexRange={[20, 0]} style={{ pointerEvents: 'none', transform: 'translate3d(-50%,-100%,0)' }}>
-        <div className={`pin ${tone}`}>
+      <Html position={[0, h + 0.1, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none', transform: 'translate3d(-50%,-100%,0)' }}>
+        <div ref={label} className={`pin ${tone}`}>
           <b>{title}</b>
           {lines.map((l, i) => (
             <span key={i}>{l}</span>
@@ -449,9 +480,12 @@ const PRESETS = {
   puerto: { label: 'Puerto', pos: V(2.1935, 41.347, 5), look: V(2.172, 41.345, 0.3) },
   montjuic: { label: 'Montjuïc', pos: V(2.186, 41.376, 1.4), look: V(2.1655, 41.364, 1.1) },
   calle: { label: 'Calle', pos: V(2.148, 41.39, 0.32), look: V(2.19, 41.4036, 0.25) },
+  sagrada: { label: 'Sagrada Família', pos: V(2.1785, 41.3995, 2.6), look: V(2.1744, 41.4036, 1.2) },
+  colom: { label: 'Port Vell (IFC)', pos: V(2.1812, 41.3732, 1.1), look: V(2.1785, 41.3752, 0.25) },
+  arc: { label: 'Arc de Triomf', pos: V(2.1832, 41.3885, 0.9), look: V(2.18067, 41.39107, 0.6) },
   collserola: { label: 'Collserola', pos: V(2.156, 41.3935, 0.4), look: (() => { const v = V(2.1186, 41.4225, 0); v.y = terrainH(v.x, v.z) * 0.7; return v })() },
 }
-const TOUR = ['ciudad', 'puerto', 'montjuic', 'calle', 'collserola']
+const TOUR = ['ciudad', 'sagrada', 'arc', 'colom', 'puerto', 'montjuic', 'calle', 'collserola']
 
 function CameraRig({ goto, controls }) {
   useFrame((state, dt) => {
@@ -520,7 +554,7 @@ function Train({ path, color, offset, tag, tone }) {
   useFrame(({ clock }) => {
     const p = pingPong(path, clock.elapsedTime, 28, offset)
     const [x, , z] = P([p.lon, p.lat])
-    g.current.position.set(x, 0.18, z)
+    g.current.position.set(x, (groundY(x, z) ?? 0) + 0.18, z)
     g.current.rotation.y = headingOf(p.east, p.north)
   })
   return (
@@ -538,7 +572,7 @@ function Train({ path, color, offset, tag, tone }) {
         </group>
       ))}
       {tag && (
-        <Html position={[0, 0.55, 0]} center distanceFactor={55} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+        <Html position={[0, 0.55, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
           <div className={`pin tag ${tone || ''}`}>{tag}</div>
         </Html>
       )}
@@ -699,8 +733,11 @@ function Pulse({ a, age }) {
     const s = 1 + 0.35 * Math.sin(clock.elapsedTime * 4 + a.hourIdx)
     g.current.scale.set(s, 1, s)
   })
+  const gy = useRef()
+  useGround(gy, x, z, 0)
   return (
-    <group position={[x, 0, z]} ref={g}>
+    <group ref={gy} position={[x, 0, z]}>
+    <group ref={g}>
       <mesh position={[0, 0.9, 0]}>
         <cylinderGeometry args={[0.06, 0.06, 1.8, 8]} />
         <meshBasicMaterial color={color} transparent opacity={Math.max(0.35, 1 - age / 7)} />
@@ -709,6 +746,7 @@ function Pulse({ a, age }) {
         <ringGeometry args={[0.35, 0.55, 24]} />
         <meshBasicMaterial color={color} side={THREE.DoubleSide} transparent opacity={0.9} />
       </mesh>
+    </group>
     </group>
   )
 }
@@ -734,6 +772,15 @@ export default function ThreeTwin({ data, hour, layers, live }) {
   const [goto, setGoto] = useState(null)
   const [tour, setTour] = useState(false)
   const [active, setActive] = useState('ciudad')
+  const [style, setStyle] = useState('tecnico')
+  const tech = style === 'tecnico'
+  // ciudad: 'osm' = OpenStreetMap + relieve + imagen reales (por teselas); 'esquema' = la maqueta procedural
+  const [city, setCity] = useState('osm')
+  const osm = city === 'osm'
+  const [imagery, setImagery] = useState('icgc')
+  const [tier, setTier] = useState(detectTier)
+  const [stats, setStats] = useState(null)
+  const [ifc, setIfc] = useState(null)
 
   const go = (k) => {
     setActive(k)
@@ -764,17 +811,19 @@ export default function ThreeTwin({ data, hour, layers, live }) {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <Canvas shadows camera={{ position: [0, 38, 78], fov: 50, near: 0.05, far: 3000 }} dpr={[1, 2]}>
-        <color attach="background" args={[sky.horizon]} />
-        <fog attach="fog" args={[sky.horizon, 70, 460]} />
-        <Sky sky={sky} />
-        <hemisphereLight args={[sky.hemiSky, sky.hemiGround, sky.hemiIntensity]} />
+      <Canvas shadows={tier.shadows} camera={{ position: [0, 38, 78], fov: 50, near: 0.02, far: 3000 }} dpr={tier.dpr} gl={{ powerPreference: 'high-performance', antialias: tier.key !== 'low' }}>
+        {/* si los FPS reales no llegan, baja el perfil (menos radio, menos resolución, sin sombras) */}
+        <PerformanceMonitor flipflops={2} onDecline={() => setTier((t) => (t.key === 'low' ? t : lowerTier(t)))} />
+        <color attach="background" args={[tech ? '#08090c' : sky.horizon]} />
+        <fog attach="fog" args={osm ? [tech ? '#08090c' : sky.horizon, tier.osmRadius / 100 * 1.2, tier.osmRadius / 100 * 3.2] : [tech ? '#08090c' : sky.horizon, tech ? 90 : 70, tech ? 420 : 460]} />
+        {!tech && <Sky sky={sky} />}
+        <hemisphereLight args={tech ? ['#9fb0d8', '#0b0c10', 0.9] : [sky.hemiSky, sky.hemiGround, sky.hemiIntensity]} />
         <directionalLight
-          position={[lx, ly, lz]}
-          color={sky.lightColor}
-          intensity={sky.lightIntensity}
+          position={tech ? [70, 100, 55] : [lx, ly, lz]}
+          color={tech ? '#dfe6ff' : sky.lightColor}
+          intensity={tech ? 1.15 : sky.lightIntensity}
           castShadow
-          shadow-mapSize={[2048, 2048]}
+          shadow-mapSize={tier.key === 'high' ? [2048, 2048] : [1024, 1024]}
           shadow-camera-left={-75}
           shadow-camera-right={75}
           shadow-camera-top={75}
@@ -783,19 +832,34 @@ export default function ThreeTwin({ data, hour, layers, live }) {
           shadow-camera-far={400}
           shadow-bias={-0.0004}
         />
-        <Terrain />
-        <Sea />
-        <Shore />
-        <Forest />
-        <City />
-        <StreetTrees />
-        <Cars live={live} />
-        <Landmarks />
+        {osm ? (
+          <>
+            <OsmCity key={tier.key} tier={tier} tech={tech} imagery={imagery} onStats={setStats} />
+            <PortIfc tier={tier} visible={layers.port} onStatus={setIfc} />
+            {layers.labels && LANDMARKS.map((l) => (
+              <Pin key={l.id} pos={P([l.lon, l.lat])} h={l.h * S + 0.35} color="#e8c46a" title={l.name} lines={l.note ? [l.note] : []} />
+            ))}
+          </>
+        ) : (
+          <>
+            <Terrain tech={tech} />
+            <Sea tech={tech} />
+            <Shore tech={tech} />
+            {!tech && <Forest />}
+            <City tech={tech} />
+            {!tech && <StreetTrees />}
+            <Cars live={live} tech={tech} />
+            <Landmarks />
+          </>
+        )}
         <Rails visible={layers.metro} live={live} />
         <Port visible={layers.port} />
         <Rain mm={mm} visible={layers.rain} />
         <Accidents data={data} hour={hour} visible={layers.accidents} />
         <InfoPins live={live} data={data} hour={hour} visible={layers.labels} />
+        {layers.fiware && live?.fiware?.entities.map((e) => (
+          <Pin key={e.id} pos={P([e.lon, e.lat])} h={0.9} color={ratioColor[e.level] || '#4cc9f0'} tone={e.level} title={`FIWARE · ${e.title}`} lines={[`${e.value ?? '—'} ${e.unit}${e.extra ? ' · ' + e.extra : ''}`]} />
+        ))}
         <CameraRig goto={goto} controls={controls} />
         <CamProbe dotRef={dot} />
         <OrbitControls ref={controls} makeDefault target={[0, 0, 0]} enableDamping maxPolarAngle={Math.PI / 2.02} minDistance={0.6} maxDistance={300} onStart={stop} onChange={onCam} />
@@ -807,8 +871,26 @@ export default function ThreeTwin({ data, hour, layers, live }) {
         <div className="hud-r"><span>Accidentes reales (24 h)</span><b>{nAcc}</b></div>
         <div className="hud-r"><span>Tráfico (red)</span><b>{avgRatio == null ? '—' : `${Math.round(avgRatio * 100)} % del habitual`}</b></div>
         <div className="hud-r"><span>Alertas abiertas</span><b>{live ? live.alerts.length : '—'}</b></div>
-        <div className="hud-n">Reales: accidentes y lluvia. Simulados: trenes, barcos, coches y tráfico. Aproximados: relieve, sol, edificios.</div>
+        {osm ? (
+          <>
+            <div className="hud-r"><span>Dispositivo</span><b>perfil {tier.name}</b></div>
+            <div className="hud-r"><span>Teselas</span><b>{stats ? `${stats.tiles} (${stats.near} con edificios)${stats.inflight ? ` · cargando ${stats.inflight}` : ''}` : '…'}</b></div>
+            <div className="hud-r"><span>Triángulos edificios</span><b>{stats ? Math.round(stats.tris / 1000) + ' k' : '…'}</b></div>
+            {ifc && <div className="hud-r"><span>IFC Port</span><b>{ifc.filter((i) => i.state === 'ok').length}/{ifc.length}{ifc.some((i) => i.state === 'cargando') ? ' · cargando' : ''}{ifc.some((i) => i.state === 'error') ? ' · con errores' : ''}</b></div>}
+            <div className="hud-n">
+              Reales: edificios y calles (OpenStreetMap vía OpenFreeMap), relieve ({stats?.demSrc || DEM_SOURCES.icgc.label}), {tech ? 'mapa vectorial' : IMAGERY[imagery].attr}, accidentes y lluvia.
+              {' '}IFC: <a href={PORT_BIM_CATALOG} target="_blank" rel="noreferrer">Biblioteca IFC del Port de Barcelona</a> (CC BY 4.0), colocados a mano.
+              {' '}Simulados: trenes, barcos y tráfico.
+              {stats?.osmFail ? <span className="err"> · {stats.osmFail} teselas OSM sin datos</span> : null}
+              {stats?.errors ? <span className="err"> · {stats.errors} errores de carga</span> : null}
+            </div>
+          </>
+        ) : (
+          <div className="hud-n">Reales: accidentes y lluvia. Simulados: trenes, barcos, coches y tráfico. Aproximados: relieve, sol, edificios.</div>
+        )}
       </div>
+
+      <div className="hud hud-chip">{data.times[hour].replace('T', ' ')} · {mm.toFixed(1)} mm/h · {nAcc} acc. 24 h</div>
 
       <div className="hud hud-compass" title="Orientación (N arriba al inicio)">
         <div ref={compass} className="compass"><i>N</i></div>
@@ -826,6 +908,13 @@ export default function ThreeTwin({ data, hour, layers, live }) {
           <button key={k} className={active === k && goto ? 'on' : ''} onClick={() => { setTour(false); go(k) }}>{v.label}</button>
         ))}
         <span className="sep" />
+        <button onClick={() => setCity((v) => (v === 'osm' ? 'esquema' : 'osm'))} title="Ciudad real por teselas o maqueta ligera">Ciudad: {osm ? 'OSM real' : 'esquema'}</button>
+        <button onClick={() => setStyle((v) => (v === 'tecnico' ? 'realista' : 'tecnico'))}>Estilo: {tech ? 'técnico' : 'realista'}</button>
+        {osm && !tech && (
+          <select value={imagery} onChange={(e) => setImagery(e.target.value)} title="Fuente de imagen aérea / satélite">
+            {Object.entries(IMAGERY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        )}
         <button className={tour ? 'on' : ''} onClick={() => { setTour((t) => !t); if (!tour) go(TOUR[(TOUR.indexOf(active) + 1) % TOUR.length]) }}>{tour ? '■ Tour' : '▶ Tour'}</button>
       </div>
     </div>

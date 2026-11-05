@@ -4,20 +4,29 @@ import SourcesPanel from './SourcesPanel.jsx'
 import AlertsPanel from './AlertsPanel.jsx'
 import RoutePanel from './RoutePanel.jsx'
 import Kpis from './Kpis.jsx'
+import Dashboard from './Dashboard.jsx'
 import Rail from './Rail.jsx'
 import { useTwinData } from './useTwinData.js'
 import { useLive } from './useLive.js'
 import { SCENARIOS, recommendRoutes } from '../shared/engine.js'
+import { detectTier } from './deviceTier.js'
+import { useFiware } from './fiware.js'
 
 // Cada vista se carga bajo demanda (maplibre y three pesan bastante)
 const MapTwin = lazy(() => import('./MapTwin.jsx'))
 const ThreeTwin = lazy(() => import('./ThreeTwin.jsx'))
 
 const TILES3D_URL = import.meta.env.VITE_TILES3D_URL || ''
+const GOOGLE_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || ''
+const HAS_TILES3D = Boolean(TILES3D_URL || GOOGLE_KEY)
+const TIER = detectTier()
 
 const CHIPS = {
   bld3d: 'Edificios 3D',
-  tiles3d: 'Teselas 3D Barcelona',
+  terrain: 'Relieve 3D',
+  sat: 'Ortofoto',
+  tiles3d: 'Teselas 3D fotorrealistas',
+  fiware: 'FIWARE',
   metro: 'Metro 3D',
   trees: 'Árboles',
   labels: 'Etiquetas',
@@ -27,20 +36,24 @@ const CHIPS = {
   rain: 'Radar lluvia',
   port: 'Puerto',
 }
-const SCENE_CHIPS = ['labels', 'metro', 'port', 'rain', 'accidents']
+const SCENE_CHIPS = ['labels', 'metro', 'port', 'rain', 'accidents', 'fiware']
 
 export default function App() {
   const data = useTwinData()
   const [scenario, setScenario] = useState('normal')
-  const { snap: live, mode, paused, resume, hist } = useLive(scenario)
+  const { snap: liveRaw, mode, paused, resume, hist } = useLive(scenario)
+  const fiware = useFiware()
+  // la fuente FIWARE se añade al resto (aparece en el panel Fuentes aunque no esté configurada)
+  const live = useMemo(() => (liveRaw ? { ...liveRaw, sources: [...liveRaw.sources, fiware.source], fiware } : null), [liveRaw, fiware])
 
   const [view, setView] = useState('map')
   const [tab, setTab] = useState('fuentes')
   const [hour, setHour] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [focus, setFocus] = useState(null)
+  const [sheet, setSheet] = useState(false) // panel inferior en móvil
   const [sel, setSel] = useState({ from: 'aeroport', to: 'catalunya' })
-  const [layers, setLayers] = useState({ bld3d: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true })
+  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true })
 
   const ok = Boolean(data && !data.error)
   const [clock, setClock] = useState(() => new Date())
@@ -65,13 +78,18 @@ export default function App() {
 
   const route = useMemo(() => (live ? recommendRoutes(sel.from, sel.to, live) : null), [live, sel])
   const toggle = (k) => setLayers((l) => ({ ...l, [k]: !l[k] }))
-  const chips = view === 'map' ? Object.keys(CHIPS).filter((k) => k !== 'labels') : SCENE_CHIPS
-  const showTimeline = view === 'scene' || tab === 'historico'
+  const chips = view === 'map' ? Object.keys(CHIPS).filter((k) => k !== 'labels' && (k !== 'tiles3d' || HAS_TILES3D)) : SCENE_CHIPS
+  const showTimeline = view === 'scene' || (view === 'map' && tab === 'historico')
   const crit = live ? live.alerts.filter((a) => a.sev === 'crit').length : 0
 
   const onFocus = (f) => {
     setView('map')
     setFocus(f)
+    setSheet(false)
+  }
+  const goView = (v) => {
+    setView(v)
+    setSheet(false)
   }
 
   return (
@@ -79,8 +97,9 @@ export default function App() {
       <header className="top">
         <div className="brand"><span className="logo" />Digital Twin<small>Barcelona</small></div>
         <nav className="nav">
-          <button className={view === 'map' ? 'on' : ''} onClick={() => setView('map')}>Mapa 3D</button>
-          <button className={view === 'scene' ? 'on' : ''} onClick={() => setView('scene')}>Escena 3D</button>
+          <button className={view === 'map' ? 'on' : ''} onClick={() => goView('map')}>Mapa 3D</button>
+          <button className={view === 'scene' ? 'on' : ''} onClick={() => goView('scene')}>Escena 3D</button>
+          <button className={view === 'dash' ? 'on' : ''} onClick={() => goView('dash')}>Dashboard</button>
         </nav>
         <div className="top-r">
           <span className="pill">Datos reales + simulados</span>
@@ -94,6 +113,9 @@ export default function App() {
         </div>
       </header>
 
+      {view === 'dash' ? (
+        ok ? <Dashboard data={data} live={live} mode={mode} scenarioLabel={SCENARIOS[scenario].label} /> : <div className="gate"><div className="card">Cargando datos…</div></div>
+      ) : (<>
       <Kpis live={live} data={ok ? data : null} />
 
       <div className="main">
@@ -112,7 +134,7 @@ export default function App() {
           ) : (
             <Suspense fallback={<div className="gate"><div className="card">Cargando vista…</div></div>}>
               {view === 'map' ? (
-                <MapTwin data={data} hour={hour} layers={layers} live={live} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} />
+                <MapTwin data={data} hour={hour} layers={layers} live={live} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} googleKey={GOOGLE_KEY} tier={TIER.key} />
               ) : (
                 <ThreeTwin data={data} hour={hour} layers={layers} live={live} />
               )}
@@ -120,7 +142,8 @@ export default function App() {
           )}
         </div>
 
-        <aside className="panel">
+        <aside className={`panel ${sheet ? 'open' : ''}`}>
+          <button className="sheet-x" onClick={() => setSheet(false)} aria-label="Cerrar panel">Cerrar ✕</button>
           <nav className="ptabs">
             <button className={tab === 'fuentes' ? 'on' : ''} onClick={() => setTab('fuentes')}>Fuentes</button>
             <button className={tab === 'alertas' ? 'on' : ''} onClick={() => setTab('alertas')}>
@@ -135,6 +158,8 @@ export default function App() {
           {tab === 'historico' && <Panel data={data} hour={hour} onPick={setHour} />}
         </aside>
       </div>
+
+      </>)}
 
       {showTimeline && (
         <footer className="bar">
@@ -151,6 +176,15 @@ export default function App() {
         <span className="st-msg">{live && live.alerts[0] ? live.alerts[0].title : 'Sin alertas activas'}</span>
         <span className="st-r">{mode === 'backend' ? 'Backend Cloudflare' : 'Motor local'} · actualiza cada 5 s{paused ? ' (en pausa)' : ''}</span>
       </footer>
+
+      <nav className="mnav">
+        <button className={view === 'map' && !sheet ? 'on' : ''} onClick={() => goView('map')}><i>◎</i>Mapa</button>
+        <button className={view === 'scene' ? 'on' : ''} onClick={() => goView('scene')}><i>▣</i>Escena 3D</button>
+        <button className={view === 'dash' ? 'on' : ''} onClick={() => goView('dash')}><i>▤</i>Dashboard</button>
+        <button className={sheet ? 'on' : ''} onClick={() => { if (view === 'dash') setView('map'); setSheet((v) => !v) }}>
+          <i>☰</i>Panel{live && live.alerts.length > 0 && <span className={`badge2 ${crit ? 'crit' : ''}`}>{live.alerts.length}</span>}
+        </button>
+      </nav>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { CENTER, PORT_BOUNDS, PORT_PINS, PORT_POLY, RAIL_LINES } from './geo.js'
 import { createMetroLayer } from './metroLayer.js'
 import { createTreesLayer } from './treesLayer.js'
+import { DEM_SOURCES, IMAGERY } from './tileMath.js'
 
 // Mapa libre: teselas vectoriales de OpenStreetMap servidas por OpenFreeMap (sin clave).
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty'
@@ -16,6 +17,9 @@ const SEV_COLOR = ['match', ['get', 'sev'], 'crit', '#e5173f', 'warn', '#f08c00'
 const GROUPS = {
   bld3d: ['bld3d'],
   metro: ['metro-line', 'metro-stations', 'metro3d'],
+  terrain: ['hillshade'],
+  sat: ['sat'],
+  fiware: ['fiware-halo', 'fiware-dot'],
   trees: ['trees3d'],
   traffic: ['zones-circle'],
   accidents: ['acc-heat', 'acc-now-dot', 'inc-halo', 'inc-dot'],
@@ -55,11 +59,16 @@ function darkenBase(map) {
   }
 }
 
+// primera capa de líneas o símbolos del estilo base (para insertar debajo los rásteres)
+function firstLineOrSymbol(map) {
+  return map.getStyle().layers.find((l) => l.type === 'line' || l.type === 'symbol')?.id
+}
+
 function accidentsGeo(accidents, from, to) {
   return { type: 'FeatureCollection', features: accidents.filter((a) => a.hourIdx >= from && a.hourIdx <= to).map((a) => pt(a.lon, a.lat, { sev: a.sev })) }
 }
 
-export default function MapTwin({ data, hour, layers, live, focus, route, tilesUrl }) {
+export default function MapTwin({ data, hour, layers, live, focus, route, tilesUrl, googleKey, tier = 'mid' }) {
   const box = useRef(null)
   const mapRef = useRef(null)
   const liveRef = useRef(live)
@@ -69,7 +78,10 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
   const [ready, setReady] = useState(false)
   const [msg, setMsg] = useState('')
   const [trees, setTrees] = useState(null)
+  const [credits, setCredits] = useState('')
   const portPins = useRef([])
+  const labelsBox = useRef(null)
+  const metroRef = useRef(null)
 
   // ---- crear el mapa una vez
   useEffect(() => {
@@ -141,16 +153,38 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
       map.addSource('alerts', { type: 'geojson', data: EMPTY })
       map.addLayer({ id: 'alerts-ring', type: 'circle', source: 'alerts', paint: { 'circle-radius': 26, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': SEV_COLOR, 'circle-stroke-width': 3 } })
 
+      // entidades FIWARE (Smart Data Models) del Context Broker
+      map.addSource('fiware', { type: 'geojson', data: EMPTY })
+      const LVL = ['match', ['get', 'level'], 'bad', '#e5173f', 'warn', '#f08c00', '#2fb36b']
+      map.addLayer({ id: 'fiware-halo', type: 'circle', source: 'fiware', paint: { 'circle-radius': 13, 'circle-color': LVL, 'circle-opacity': 0.18 } })
+      map.addLayer({ id: 'fiware-dot', type: 'circle', source: 'fiware', paint: { 'circle-radius': 6, 'circle-color': '#0b0d11', 'circle-stroke-color': LVL, 'circle-stroke-width': 3 } })
+      map.on('click', 'fiware-dot', (e) => {
+        const p = e.features[0].properties
+        new maplibregl.Popup({ closeButton: false }).setLngLat(e.lngLat).setText(`FIWARE · ${p.type}: ${p.title} — ${p.value ?? '—'} ${p.unit}${p.extra ? ' · ' + p.extra : ''}`).addTo(map)
+      })
+      map.on('mouseenter', 'fiware-dot', () => (map.getCanvas().style.cursor = 'pointer'))
+      map.on('mouseleave', 'fiware-dot', () => (map.getCanvas().style.cursor = ''))
+
       // ruta recomendada
       map.addSource('route', { type: 'geojson', data: EMPTY })
       map.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: ['==', '$type', 'LineString'], paint: { 'line-color': '#7c3aed', 'line-width': 5, 'line-dasharray': [1.5, 1.2] } })
       map.addLayer({ id: 'route-pts', type: 'circle', source: 'route', filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 9, 'circle-color': '#7c3aed', 'circle-stroke-color': '#fff', 'circle-stroke-width': 3 } })
 
-      // metro 3D en movimiento (Three.js dentro del mapa)
-      map.addLayer(createMetroLayer(() => liveRef.current?.metro))
+      // metro 3D en movimiento (Three.js dentro del mapa) + etiqueta encima de cada tren
+      metroRef.current = createMetroLayer(() => liveRef.current?.metro, labelsBox.current)
+      map.addLayer(metroRef.current)
 
       // árboles reales en 3D (datos generados con scripts/build-trees.mjs)
       map.addLayer(createTreesLayer((st) => setTrees(st)))
+
+      // relieve real: modelo de 5 m del ICGC (terrain-RGB). Sombreado siempre disponible; 3D con el interruptor "Relieve"
+      map.addSource('dem', { type: 'raster-dem', tiles: [DEM_SOURCES.icgc.url], tileSize: 256, maxzoom: DEM_SOURCES.icgc.maxZ, encoding: 'mapbox', attribution: 'Relieve: ICGC (CC BY 4.0)' })
+      map.addSource('dem-hs', { type: 'raster-dem', tiles: [DEM_SOURCES.icgc.url], tileSize: 256, maxzoom: DEM_SOURCES.icgc.maxZ, encoding: 'mapbox' })
+      map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'dem-hs', paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#000000', 'hillshade-highlight-color': '#2a3242', 'hillshade-accent-color': '#0b0d11' } }, firstLineOrSymbol(map))
+
+      // ortofoto / satélite debajo de calles y edificios
+      map.addSource('sat', { type: 'raster', tiles: [IMAGERY.icgc.url], tileSize: 256, maxzoom: 19, attribution: IMAGERY.icgc.attr })
+      map.addLayer({ id: 'sat', type: 'raster', source: 'sat', layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.92, 'raster-saturation': -0.15 } }, firstLineOrSymbol(map))
 
       // radar de lluvia real (RainViewer)
       fetch('https://api.rainviewer.com/public/weather-maps.json')
@@ -206,6 +240,24 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
     portPins.current.forEach((el) => (el.style.display = layers.port ? '' : 'none'))
   }, [ready, layers.port])
 
+  // relieve 3D (terreno) y etiquetas de trenes
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    const apply = () => {
+      try {
+        map.setTerrain(layers.terrain ? { source: 'dem', exaggeration: 1 } : null)
+      } catch {
+        map.once('idle', apply) // el estilo aún está cargando: reintentar cuando termine
+      }
+    }
+    apply()
+  }, [ready, layers.terrain])
+  useEffect(() => {
+    metroRef.current?.setLabelsVisible(layers.metro)
+    if (!layers.metro) metroRef.current?.stopFollow()
+  }, [ready, layers.metro])
+
   // ---- datos en vivo (zonas, incidentes, alertas)
   useEffect(() => {
     const map = mapRef.current
@@ -214,6 +266,14 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
     map.getSource('incidents')?.setData({ type: 'FeatureCollection', features: live.incidents.map((i) => pt(i.lon, i.lat, { sev: i.severity })) })
     map.getSource('alerts')?.setData({ type: 'FeatureCollection', features: live.alerts.map((a) => pt(a.lon, a.lat, { sev: a.sev })) })
   }, [ready, live])
+
+  // ---- FIWARE
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    const ents = live?.fiware?.entities || []
+    map.getSource('fiware')?.setData({ type: 'FeatureCollection', features: ents.map((e) => pt(e.lon, e.lat, { type: e.type, title: e.title, value: e.value, unit: e.unit, level: e.level, extra: e.extra || '' })) })
+  }, [ready, live?.fiware])
 
   // ---- accidentes históricos (ventana de 6 h hasta la hora elegida)
   useEffect(() => {
@@ -246,29 +306,35 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
   // ---- teselas 3D opcionales
   useEffect(() => {
     const map = mapRef.current
-    if (!ready || !map || !layers.tiles3d || !tilesUrl) return
+    if (!ready || !map || !layers.tiles3d || !(tilesUrl || googleKey)) return
     let off = null
     let cancelled = false
     import('./tiles3d.js')
-      .then((m) => m.enableTiles3D(map, tilesUrl))
+      .then((m) => m.enableTiles3D(map, { url: tilesUrl, googleKey, tier, onCredits: setCredits }))
       .then((dispose) => (cancelled ? dispose() : (off = dispose)))
-      .catch(() => setMsg('No se pudo cargar la capa de teselas 3D. Revisa la URL de VITE_TILES3D_URL.'))
+      .catch(() => setMsg('No se pudo cargar la capa de teselas 3D. Revisa VITE_TILES3D_URL o VITE_GOOGLE_MAPS_KEY.'))
     return () => {
       cancelled = true
       off?.()
     }
-  }, [ready, layers.tiles3d, tilesUrl])
+  }, [ready, layers.tiles3d, tilesUrl, googleKey, tier])
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={box} style={{ position: 'absolute', inset: 0 }} />
+      <div ref={labelsBox} className="train-pins" />
       <div className="badge">
-        Mapa: OpenStreetMap vía OpenFreeMap · Radar: RainViewer · Accidentes: reales 2024 (Guàrdia Urbana) · Tráfico, metro y puerto: simulados
-        {layers.tiles3d && !tilesUrl && <div className="err">Capa 3D de Barcelona: falta VITE_TILES3D_URL (ver README).</div>}
+        Mapa: OpenStreetMap vía OpenFreeMap · Relieve: ICGC 5 m{layers.sat ? ' · Ortofoto: ICGC' : ''} · Radar: RainViewer · Accidentes: reales 2024 (Guàrdia Urbana) · Tráfico, metro y puerto: simulados
+        {layers.tiles3d && credits && <div className="muted">Teselas 3D: {credits}</div>}
         {layers.trees && trees?.state === 'missing' && <div className="err">Árboles: faltan public/data/trees.bin y trees.json. Genéralos con scripts/build-trees.mjs (ver README).</div>}
         {layers.trees && trees?.state === 'far' && <div className="muted">Árboles: acerca el mapa (zoom ≥ 14,2) para verlos.</div>}
         {layers.trees && trees?.state === 'ok' && trees.shown != null && (
           <div className="muted">Árboles: {trees.shown.toLocaleString('es')} dibujados de {trees.n.toLocaleString('es')}{trees.capped ? ' (límite de dibujo)' : ''} · posición y especie reales (Open Data BCN, CC BY 4.0); altura y copa ilustrativas</div>
+        )}
+        {layers.fiware && live?.fiware && (
+          <div className={live.fiware.status === 'ok' ? 'muted' : 'muted'}>
+            FIWARE: {live.fiware.status === 'ok' ? `${live.fiware.n} entidades${live.fiware.demo ? ' (MUESTRA, valores inventados)' : ' en tiempo real'}` : 'sin broker configurado (ver README o ?fiware=demo)'}
+          </div>
         )}
         {msg && <div className="err">{msg}</div>}
       </div>
