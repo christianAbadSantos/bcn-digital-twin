@@ -11,6 +11,7 @@ import { useLive } from './useLive.js'
 import { SCENARIOS, recommendRoutes } from '../shared/engine.js'
 import { detectTier } from './deviceTier.js'
 import { useFiware } from './fiware.js'
+import { useRodalies } from './useRodalies.js'
 
 // Cada vista se carga bajo demanda (maplibre y three pesan bastante)
 const MapTwin = lazy(() => import('./MapTwin.jsx'))
@@ -27,6 +28,7 @@ const CHIPS = {
   sat: 'Ortofoto',
   tiles3d: 'Teselas 3D fotorrealistas',
   fiware: 'FIWARE',
+  rodalies: 'Rodalies (real)',
   metro: 'Metro 3D',
   trees: 'Árboles',
   labels: 'Etiquetas',
@@ -43,8 +45,9 @@ export default function App() {
   const [scenario, setScenario] = useState('normal')
   const { snap: liveRaw, mode, paused, resume, hist } = useLive(scenario)
   const fiware = useFiware()
+  const rodalies = useRodalies()
   // la fuente FIWARE se añade al resto (aparece en el panel Fuentes aunque no esté configurada)
-  const live = useMemo(() => (liveRaw ? { ...liveRaw, sources: [...liveRaw.sources, fiware.source], fiware } : null), [liveRaw, fiware])
+  const live = useMemo(() => (liveRaw ? { ...liveRaw, sources: [...liveRaw.sources, rodalies.source, fiware.source], fiware, rodalies } : null), [liveRaw, fiware, rodalies])
 
   const [view, setView] = useState('map')
   const [tab, setTab] = useState('fuentes')
@@ -53,7 +56,7 @@ export default function App() {
   const [focus, setFocus] = useState(null)
   const [sheet, setSheet] = useState(false) // panel inferior en móvil
   const [sel, setSel] = useState({ from: 'aeroport', to: 'catalunya' })
-  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true })
+  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true })
 
   const ok = Boolean(data && !data.error)
   const [clock, setClock] = useState(() => new Date())

@@ -9,6 +9,13 @@ export default defineConfig({
     // en desarrollo, los IFC del Port se piden a través de este proxy (su servidor no permite CORS);
     // en Cloudflare lo hace functions/api/ifc.js con caché en R2
     proxy: {
+      // trenes reales de Rodalies (Renfe GTFS-RT, sin CORS)
+      '/renfe': {
+        target: 'https://gtfsrt.renfe.com',
+        changeOrigin: true,
+        headers: { 'user-agent': 'bcn-digital-twin/0.5 (+https://bcn-digital-twin.pages.dev)' },
+        rewrite: (p) => p.slice('/renfe'.length),
+      },
       '/api/ifc': {
         target: 'https://serveis.portdebarcelona.cat',
         changeOrigin: true,

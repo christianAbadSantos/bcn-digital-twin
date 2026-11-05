@@ -20,6 +20,7 @@ const GROUPS = {
   terrain: ['hillshade'],
   sat: ['sat'],
   fiware: ['fiware-halo', 'fiware-dot'],
+  rodalies: ['rodalies-dot', 'rodalies-label'],
   trees: ['trees3d'],
   traffic: ['zones-circle'],
   accidents: ['acc-heat', 'acc-now-dot', 'inc-halo', 'inc-dot'],
@@ -169,6 +170,17 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
       map.on('mouseenter', 'fiware-dot', () => (map.getCanvas().style.cursor = 'pointer'))
       map.on('mouseleave', 'fiware-dot', () => (map.getCanvas().style.cursor = ''))
 
+      // trenes REALES de Rodalies (Renfe GTFS-RT): punto con el color de la línea y etiqueta línea · retraso
+      map.addSource('rodalies', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'rodalies-dot', type: 'circle', source: 'rodalies', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 4, 14, 8], 'circle-color': ['get', 'color'], 'circle-stroke-color': ['case', ['>=', ['get', 'delay'], 5], '#d03b3b', '#ffffff'], 'circle-stroke-width': 2.5 } })
+      map.addLayer({ id: 'rodalies-label', type: 'symbol', source: 'rodalies', minzoom: 11, layout: { 'text-field': ['get', 'text'], 'text-size': 11, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': false }, paint: { 'text-color': '#101828', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 } })
+      map.on('click', 'rodalies-dot', (e) => {
+        const p = e.features[0].properties
+        new maplibregl.Popup({ closeButton: false }).setLngLat(e.lngLat).setText(`Rodalies ${p.line} · tren ${p.id} · ${p.delayTxt} · dato real de Renfe (GTFS-RT)`).addTo(map)
+      })
+      map.on('mouseenter', 'rodalies-dot', () => (map.getCanvas().style.cursor = 'pointer'))
+      map.on('mouseleave', 'rodalies-dot', () => (map.getCanvas().style.cursor = ''))
+
       // ruta recomendada
       map.addSource('route', { type: 'geojson', data: EMPTY })
       map.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: ['==', '$type', 'LineString'], paint: { 'line-color': '#6250d6', 'line-width': 5, 'line-dasharray': [1.5, 1.2] } })
@@ -271,6 +283,15 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
     map.getSource('alerts')?.setData({ type: 'FeatureCollection', features: live.alerts.map((a) => pt(a.lon, a.lat, { sev: a.sev })) })
   }, [ready, live])
 
+  // ---- Rodalies (trenes reales)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    const ts = live?.rodalies?.trains || []
+    const txt = (t) => (t.delayMin == null ? 'sin dato de retraso' : t.delayMin <= 0 ? 'en hora' : `+${t.delayMin} min`)
+    map.getSource('rodalies')?.setData({ type: 'FeatureCollection', features: ts.map((t) => pt(t.lon, t.lat, { id: t.id, line: t.line, color: t.color, delay: t.delayMin ?? 0, delayTxt: txt(t), text: t.delayMin > 0 ? `${t.line} +${t.delayMin}'` : t.line })) })
+  }, [ready, live?.rodalies])
+
   // ---- FIWARE
   useEffect(() => {
     const map = mapRef.current
@@ -334,6 +355,9 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
         {layers.trees && trees?.state === 'far' && <div className="muted">Árboles: acerca el mapa (zoom ≥ 14,2) para verlos.</div>}
         {layers.trees && trees?.state === 'ok' && trees.shown != null && (
           <div className="muted">Árboles: {trees.shown.toLocaleString('es')} dibujados de {trees.n.toLocaleString('es')}{trees.capped ? ' (límite de dibujo)' : ''} · posición y especie reales (Open Data BCN, CC BY 4.0); altura y copa ilustrativas</div>
+        )}
+        {layers.rodalies && live?.rodalies && (
+          <div className="muted">Rodalies: {live.rodalies.status === 'ok' ? `${live.rodalies.trains.length} trenes en tiempo real (Renfe, datos abiertos)` : 'sin datos de Renfe ahora mismo'}</div>
         )}
         {layers.fiware && live?.fiware && (
           <div className={live.fiware.status === 'ok' ? 'muted' : 'muted'}>
