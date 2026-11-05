@@ -5,6 +5,7 @@ import { CENTER, PORT_BOUNDS, PORT_PINS, PORT_POLY, RAIL_LINES } from './geo.js'
 import { createMetroLayer } from './metroLayer.js'
 import { createTreesLayer } from './treesLayer.js'
 import { DEM_SOURCES, IMAGERY } from './tileMath.js'
+import { REPORT_TYPES } from '../shared/reportsConfig.js'
 
 // Mapa libre: teselas vectoriales de OpenStreetMap servidas por OpenFreeMap (sin clave).
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty'
@@ -21,6 +22,7 @@ const GROUPS = {
   sat: ['sat'],
   fiware: ['fiware-halo', 'fiware-dot'],
   rodalies: ['rodalies-dot', 'rodalies-label'],
+  reports: ['reports-halo', 'reports-dot'],
   trees: ['trees3d'],
   traffic: ['zones-circle'],
   accidents: ['acc-heat', 'acc-now-dot', 'inc-halo', 'inc-dot'],
@@ -73,7 +75,7 @@ function accidentsGeo(accidents, from, to) {
   return { type: 'FeatureCollection', features: accidents.filter((a) => a.hourIdx >= from && a.hourIdx <= to).map((a) => pt(a.lon, a.lat, { sev: a.sev })) }
 }
 
-export default function MapTwin({ data, hour, layers, live, focus, route, tilesUrl, googleKey, tier = 'mid' }) {
+export default function MapTwin({ data, hour, layers, live, focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
   const box = useRef(null)
   const mapRef = useRef(null)
   const liveRef = useRef(live)
@@ -87,6 +89,8 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
   const portPins = useRef([])
   const labelsBox = useRef(null)
   const metroRef = useRef(null)
+  const pickRef = useRef(null)
+  pickRef.current = picking ? onPick : null
 
   // ---- crear el mapa una vez
   useEffect(() => {
@@ -180,6 +184,33 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
       })
       map.on('mouseenter', 'rodalies-dot', () => (map.getCanvas().style.cursor = 'pointer'))
       map.on('mouseleave', 'rodalies-dot', () => (map.getCanvas().style.cursor = ''))
+
+      // reportes ciudadanos (foto + ubicación, enviados con sesión iniciada)
+      map.addSource('reports', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'reports-halo', type: 'circle', source: 'reports', paint: { 'circle-radius': 14, 'circle-color': '#6250d6', 'circle-opacity': 0.15 } })
+      map.addLayer({ id: 'reports-dot', type: 'circle', source: 'reports', paint: { 'circle-radius': 7, 'circle-color': '#6250d6', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 } })
+      map.on('click', 'reports-dot', (e) => {
+        const p = e.features[0].properties
+        // contenido de usuarios: se construye con textContent, nunca con HTML
+        const box = document.createElement('div')
+        box.className = 'rep-pop'
+        if (String(p.foto).startsWith('https://res.cloudinary.com/')) {
+          const img = document.createElement('img')
+          img.src = p.foto
+          img.alt = p.tipoTxt
+          box.appendChild(img)
+        }
+        const b = document.createElement('b')
+        b.textContent = p.tipoTxt
+        const t = document.createElement('span')
+        t.textContent = [p.texto, p.autor + ' · ' + p.fecha].filter(Boolean).join(' — ')
+        box.append(b, t)
+        new maplibregl.Popup({ closeButton: true, maxWidth: '260px' }).setLngLat(e.lngLat).setDOMContent(box).addTo(map)
+      })
+      map.on('mouseenter', 'reports-dot', () => (map.getCanvas().style.cursor = 'pointer'))
+      map.on('mouseleave', 'reports-dot', () => (map.getCanvas().style.cursor = pickRef.current ? 'crosshair' : ''))
+      // modo "elegir punto" para un reporte nuevo
+      map.on('click', (e) => pickRef.current?.({ lon: e.lngLat.lng, lat: e.lngLat.lat }))
 
       // ruta recomendada
       map.addSource('route', { type: 'geojson', data: EMPTY })
@@ -282,6 +313,18 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
     map.getSource('incidents')?.setData({ type: 'FeatureCollection', features: live.incidents.map((i) => pt(i.lon, i.lat, { sev: i.severity })) })
     map.getSource('alerts')?.setData({ type: 'FeatureCollection', features: live.alerts.map((a) => pt(a.lon, a.lat, { sev: a.sev })) })
   }, [ready, live])
+
+  // ---- reportes ciudadanos
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    const rs = live?.reports?.reports || []
+    map.getSource('reports')?.setData({ type: 'FeatureCollection', features: rs.map((r) => pt(r.lon, r.lat, { foto: r.foto, tipoTxt: REPORT_TYPES[r.tipo] || 'Incidencia', texto: r.texto, autor: r.autor, fecha: new Date(r.creado).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) })) })
+  }, [ready, live?.reports])
+  useEffect(() => {
+    const map = mapRef.current
+    if (map) map.getCanvas().style.cursor = picking ? 'crosshair' : ''
+  }, [picking])
 
   // ---- Rodalies (trenes reales)
   useEffect(() => {

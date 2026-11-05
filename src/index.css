@@ -532,3 +532,22 @@ select { background: #fff; color: var(--txt); border: 1px solid var(--line); }
 .mnav { background: #ffffff; border-top: 1px solid var(--line); }
 .mnav button { color: var(--mut); } .mnav button.on { color: var(--acc); }
 input[type=range] { accent-color: var(--acc); }
+
+/* ---------- sesión y reportes ciudadanos ---------- */
+.btn-auth { background: var(--acc); color: #fff; border: 0; border-radius: 6px; padding: 5px 12px; font: 600 12.5px system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+.btn-auth:hover { filter: brightness(1.1); }
+.toolbar .chip.report { color: #4a3aa7; font-weight: 600; }
+.toolbar .chip.report.on { background: #f3f1fd; color: #4a3aa7; box-shadow: inset 0 -2px 0 #6250d6; }
+.rep-back { position: fixed; inset: 0; z-index: 50; background: rgba(16,24,40,.35); display: grid; place-items: center; padding: 16px; }
+.rep-card { width: min(420px, 100%); background: #fff; border-radius: 14px; padding: 20px 22px; box-shadow: 0 20px 50px rgba(16,24,40,.25); display: grid; gap: 12px; }
+.rep-card h3 { margin: 0; font-size: 18px; }
+.rep-card label { display: grid; gap: 5px; font-size: 12.5px; color: var(--mut); font-weight: 600; }
+.rep-card select, .rep-card textarea, .rep-card input[type=file] { font: 13px system-ui, sans-serif; color: var(--txt); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: #fff; }
+.rep-card textarea { resize: vertical; }
+.rep-note { margin: 0; font-size: 11.5px; color: var(--mut); }
+.rep-msg { margin: 0; font-size: 12.5px; color: var(--txt); }
+.rep-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.btn.primary { background: var(--acc); color: #fff; border-color: var(--acc); }
+.rep-pop { display: grid; gap: 4px; font: 12px system-ui, sans-serif; }
+.rep-pop img { width: 100%; border-radius: 6px; display: block; }
+.rep-pop span { color: var(--mut); }

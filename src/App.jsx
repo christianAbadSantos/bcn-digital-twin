@@ -12,6 +12,7 @@ import { SCENARIOS, recommendRoutes } from '../shared/engine.js'
 import { detectTier } from './deviceTier.js'
 import { useFiware } from './fiware.js'
 import { useRodalies } from './useRodalies.js'
+import { useReports, AuthButton, ReportButton, ReportDialog } from './reports.jsx'
 
 // Cada vista se carga bajo demanda (maplibre y three pesan bastante)
 const MapTwin = lazy(() => import('./MapTwin.jsx'))
@@ -29,6 +30,7 @@ const CHIPS = {
   tiles3d: 'Teselas 3D fotorrealistas',
   fiware: 'FIWARE',
   rodalies: 'Rodalies (real)',
+  reports: 'Reportes',
   metro: 'Metro 3D',
   trees: 'Árboles',
   labels: 'Etiquetas',
@@ -46,8 +48,11 @@ export default function App() {
   const { snap: liveRaw, mode, paused, resume, hist } = useLive(scenario)
   const fiware = useFiware()
   const rodalies = useRodalies()
+  const reports = useReports()
+  const [picking, setPicking] = useState(false) // eligiendo punto para un reporte
+  const [reportPoint, setReportPoint] = useState(null)
   // la fuente FIWARE se añade al resto (aparece en el panel Fuentes aunque no esté configurada)
-  const live = useMemo(() => (liveRaw ? { ...liveRaw, sources: [...liveRaw.sources, rodalies.source, fiware.source], fiware, rodalies } : null), [liveRaw, fiware, rodalies])
+  const live = useMemo(() => (liveRaw ? { ...liveRaw, sources: [...liveRaw.sources, rodalies.source, fiware.source, reports.source], fiware, rodalies, reports } : null), [liveRaw, fiware, rodalies, reports])
 
   const [view, setView] = useState('map')
   const [tab, setTab] = useState('fuentes')
@@ -56,7 +61,7 @@ export default function App() {
   const [focus, setFocus] = useState(null)
   const [sheet, setSheet] = useState(false) // panel inferior en móvil
   const [sel, setSel] = useState({ from: 'aeroport', to: 'catalunya' })
-  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true })
+  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, reports: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true })
 
   const ok = Boolean(data && !data.error)
   const [clock, setClock] = useState(() => new Date())
@@ -113,6 +118,7 @@ export default function App() {
             </select>
           </label>
           <span className="clock">{clock.toLocaleTimeString('es-ES')}</span>
+          <AuthButton />
         </div>
       </header>
 
@@ -125,6 +131,7 @@ export default function App() {
         <Rail live={live} onFocus={onFocus} />
         <div className="view">
           <div className="toolbar">
+            {view === 'map' && <ReportButton picking={picking} onStart={() => setPicking(true)} onCancel={() => setPicking(false)} />}
             {view === 'map' && <button className="chip" onClick={() => setFocus({ port: true, t: Date.now() })}>Encuadrar puerto</button>}
             {chips.map((k) => (
               <button key={k} className={`chip ${layers[k] ? 'on' : ''}`} onClick={() => toggle(k)}>{CHIPS[k]}</button>
@@ -137,7 +144,8 @@ export default function App() {
           ) : (
             <Suspense fallback={<div className="gate"><div className="card">Cargando vista…</div></div>}>
               {view === 'map' ? (
-                <MapTwin data={data} hour={hour} layers={layers} live={live} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} googleKey={GOOGLE_KEY} tier={TIER.key} />
+                <MapTwin data={data} hour={hour} layers={layers} live={live} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} googleKey={GOOGLE_KEY} tier={TIER.key}
+                  picking={picking} onPick={(p) => { setPicking(false); setReportPoint(p) }} />
               ) : (
                 <ThreeTwin data={data} hour={hour} layers={layers} live={live} />
               )}
@@ -171,6 +179,8 @@ export default function App() {
           <span className="time">{ok ? data.times[hour].replace('T', ' ') : '—'}</span>
         </footer>
       )}
+
+      {reportPoint && <ReportDialog point={reportPoint} onClose={() => setReportPoint(null)} onSent={() => setTimeout(reports.reload, 2500)} />}
 
       <footer className="status">
         <span className="sv"><i className="d bad" />{crit} críticas</span>

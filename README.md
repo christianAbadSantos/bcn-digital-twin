@@ -197,3 +197,14 @@ src/*Panel.jsx     fuentes, alertas, ruta, lluvia vs accidentes
 ## Publicar
 
 Igual que antes: repo en GitHub conectado a Cloudflare Pages, comando `npm run build`, salida `dist`. Ya **no hace falta ningún token** (se quitó Mapbox). Puedes borrar la variable `VITE_MAPBOX_TOKEN` de Cloudflare y el token en Mapbox.
+
+## Trenes reales de Rodalies
+
+`shared/rodalies.js` lee los feeds GTFS-RT abiertos de Renfe (`gtfsrt.renfe.com/vehicle_positions.json` y `trip_updates.json`), la misma fuente que usan webs como TrainTracker24. Muestra en el mapa cada tren de Rodalies de Catalunya con su línea y su retraso. Renfe no permite CORS: en Cloudflare los sirve `functions/api/rodalies.js` (caché de 20 s) y en local el proxy `/renfe` de Vite. El metro (TMB) sigue simulado.
+
+## Inicio de sesión y reportes ciudadanos (Clerk + Cloudinary)
+
+- **Clerk** (instancia de desarrollo): botón *Iniciar sesión* con email o Google. La clave publicable está en `shared/reportsConfig.js` (es pública por diseño).
+- **Reportes**: con sesión iniciada, *+ Reportar incidencia* → tocar el mapa → tipo, descripción y foto. La foto se sube **directamente a Cloudinary** con una firma que genera `functions/api/reports.js` tras **verificar el token de Clerk** (JWKS). La ubicación, el tipo y el texto los valida el servidor y van en el contexto de la imagen; no hace falta base de datos. `GET /api/reports` los lista con la Search API de Cloudinary.
+- **Secretos** (Cloudflare Pages → Settings → Variables and Secrets, tipo *Secret*): `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET` (Cloudinary → Settings → API Keys). Sin ellos la app funciona y los reportes salen como *sin configurar*.
+- Las fotos son públicas: el formulario avisa de no subir caras ni matrículas. Para producción haría falta moderación.
