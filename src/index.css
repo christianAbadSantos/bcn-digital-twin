@@ -548,8 +548,9 @@ input[type=range] { accent-color: var(--acc); }
 .rep-msg { margin: 0; font-size: 12.5px; color: var(--txt); }
 .rep-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .btn.primary { background: var(--acc); color: #fff; border-color: var(--acc); }
-.rep-pop { display: grid; gap: 4px; font: 12px system-ui, sans-serif; }
-.rep-pop img { width: 100%; border-radius: 6px; display: block; }
+.rep-pop { display: grid; gap: 4px; width: 240px; font: 12px system-ui, sans-serif; }
+/* tamaño fijo (3:2, como la miniatura de Cloudinary) para que el popup se coloque bien antes de que cargue la foto */
+.rep-pop img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; background: #eef0f3; border-radius: 6px; display: block; }
 .rep-pop span { color: var(--mut); }
 
 /* los popups del mapa por encima de las etiquetas de los trenes */
