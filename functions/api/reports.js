@@ -28,7 +28,11 @@ export async function onRequestGet({ request, env, waitUntil }) {
     headers: { 'content-type': 'application/json', authorization: 'Basic ' + btoa(`${env.CLOUDINARY_API_KEY}:${env.CLOUDINARY_API_SECRET}`), 'user-agent': USER_AGENT },
     body: JSON.stringify({ expression: `tags=${REPORT_TAG}`, with_field: ['context'], sort_by: [{ created_at: 'desc' }], max_results: 100 }),
   })
-  if (!r.ok) return json({ enabled: true, reports: [], error: `Cloudinary ${r.status}` }, 502)
+  if (!r.ok) {
+    // mensaje de Cloudinary (sin números, para no mostrar la API key) para saber qué clave falla
+    const detail = await r.json().then((d) => String(d?.error?.message || '').replace(/\d{4,}/g, '…')).catch(() => '')
+    return json({ enabled: true, reports: [], error: `Cloudinary ${r.status}`, detail }, 502)
+  }
   const data = await r.json()
   const reports = (data.resources || [])
     .map((x) => {
