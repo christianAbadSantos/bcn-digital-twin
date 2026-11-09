@@ -551,3 +551,6 @@ input[type=range] { accent-color: var(--acc); }
 .rep-pop { display: grid; gap: 4px; font: 12px system-ui, sans-serif; }
 .rep-pop img { width: 100%; border-radius: 6px; display: block; }
 .rep-pop span { color: var(--mut); }
+
+/* los popups del mapa por encima de las etiquetas de los trenes */
+.maplibregl-popup { z-index: 5; }
