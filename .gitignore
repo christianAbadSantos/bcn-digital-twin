@@ -4,3 +4,10 @@ dist
 .env.local
 .wrangler
 media
+
+# .NET (fcc-residus-api)
+bin/
+obj/
+*.user
+.vs/
+TestResults/

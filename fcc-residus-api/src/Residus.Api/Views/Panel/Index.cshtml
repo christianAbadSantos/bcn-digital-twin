@@ -1,0 +1,95 @@
+@model List<Contenidor>
+@{
+    var k = (Kpis)ViewData["Kpis"]!;
+    string Nom(Fraccio f) => f switch { Fraccio.Rebuig => "Resto", Fraccio.Envasos => "Envases", Fraccio.Paper => "Papel y cartón", Fraccio.Vidre => "Vidrio", Fraccio.Organica => "Orgánica", _ => f.ToString() };
+    string Classe(double n) => n >= 100 ? "crit" : n >= 80 ? "warn" : "ok";
+    var hora = TimeZoneInfo.ConvertTime(k.Ts, TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid"));
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content="30" />
+    <title>Residus BCN · Panel de operaciones</title>
+    <style>
+        :root { --ink:#101828; --mut:#667085; --line:#e4e7ec; --acc:#184f95; --ok:#0ca30c; --warn:#b26b00; --crit:#d03b3b; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font: 14px/1.45 system-ui, "Segoe UI", sans-serif; color: var(--ink); background: #f4f5f7; }
+        header { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 24px; display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+        header h1 { font-size: 18px; margin: 0; } header span { color: var(--mut); font-size: 12.5px; }
+        main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }
+        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+        .kpi { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+        .kpi b { display: block; font-size: 24px; } .kpi small { color: var(--mut); }
+        h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--mut); margin: 22px 0 8px; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+        th, td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line); }
+        th { background: #f9fafb; font-size: 11.5px; text-transform: uppercase; color: var(--mut); border-top: 0; }
+        .bar { height: 8px; background: #eef0f3; border-radius: 4px; overflow: hidden; min-width: 90px; }
+        .bar i { display: block; height: 100%; }
+        .ok i { background: var(--ok); } .warn i { background: #fab219; } .crit i { background: var(--crit); }
+        td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .crit-t { color: var(--crit); font-weight: 600; }
+        footer { color: var(--mut); font-size: 12px; margin-top: 18px; }
+        a { color: var(--acc); }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Residus BCN · Panel de operaciones</h1>
+    <span>ASP.NET Core MVC · EF Core · PostgreSQL · actualizado a las @hora.ToString("HH:mm:ss") (se refresca cada 30 s)</span>
+</header>
+<main>
+    <div class="kpis">
+        <div class="kpi"><b>@k.Contenidors.ToString("N0")</b><small>contenedores con sensor</small></div>
+        <div class="kpi"><b>@k.Plens.ToString("N0")</b><small>por encima del 80 %</small></div>
+        <div class="kpi"><b class="@(k.Desbordats > 0 ? "crit-t" : "")">@k.Desbordats.ToString("N0")</b><small>desbordados (100 %)</small></div>
+        <div class="kpi"><b>@k.BateriaBaixa.ToString("N0")</b><small>con batería &lt; 20 %</small></div>
+        <div class="kpi"><b>@k.LecturesUltimaHora.ToString("N0")</b><small>lecturas en la última hora</small></div>
+        <div class="kpi"><b>@k.RecollidesAvui</b><small>rutas hechas hoy · @k.KgRecollitsAvui.ToString("N0") kg</small></div>
+    </div>
+
+    <h2>Por fracción</h2>
+    <table>
+        <thead><tr><th>Fracción</th><th class="num">Contenedores</th><th>Llenado medio</th><th class="num">&gt; 80 %</th><th class="num">Desbordados</th><th class="num">Kg estimados</th></tr></thead>
+        <tbody>
+        @foreach (var f in k.PerFraccio)
+        {
+            <tr>
+                <td>@Nom(f.Fraccio)</td>
+                <td class="num">@f.Contenidors.ToString("N0")</td>
+                <td><div class="bar @Classe(f.NivellMitja)"><i style="width:@(f.NivellMitja.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></i></div> @f.NivellMitja.ToString("0.0") %</td>
+                <td class="num">@f.PlensMes80.ToString("N0")</td>
+                <td class="num">@f.Desbordats.ToString("N0")</td>
+                <td class="num">@f.KgEstimats.ToString("N0")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <h2>Los 25 contenedores más llenos</h2>
+    <table>
+        <thead><tr><th>Id</th><th>Fracción</th><th>Nivel</th><th class="num">Batería</th><th>Última lectura</th><th>Ubicación</th></tr></thead>
+        <tbody>
+        @foreach (var c in Model)
+        {
+            <tr>
+                <td>@c.Id</td>
+                <td>@Nom(c.Fraccio)@(c.Soterrat ? " (soterrado)" : "")</td>
+                <td><div class="bar @Classe(c.NivellPct)"><i style="width:@(c.NivellPct.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></i></div> @c.NivellPct.ToString("0.0") %</td>
+                <td class="num">@c.BateriaPct.ToString("0") %</td>
+                <td>@(c.UltimaLectura is { } u ? TimeZoneInfo.ConvertTime(u, TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid")).ToString("HH:mm") : "—")</td>
+                <td><a href="https://www.openstreetmap.org/node/@c.OsmId" target="_blank" rel="noopener">@c.Lat.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture), @c.Lon.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <footer>
+        Posiciones reales de OpenStreetMap; niveles de llenado simulados por un servicio en segundo plano (como sensores LoRaWAN).
+        API documentada en <a href="/scalar">/scalar</a> · OpenAPI en <a href="/openapi/v1.json">/openapi/v1.json</a>.
+    </footer>
+</main>
+</body>
+</html>

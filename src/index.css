@@ -584,3 +584,27 @@ input[type=range] { accent-color: var(--acc); }
 .v16-row i { width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.25); }
 .v16-row.sim i { box-shadow: 0 0 0 2px #6250d6; }
 .v16-row small { color: var(--mut); }
+
+/* ---- residuos: estado de los contenedores y ruta de recogida */
+.res h3 { font-size: 12.5px; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
+.res .small { font-size: 11.5px; }
+.res-mode { font-size: 11.5px; padding: 8px 10px; border-radius: 6px; background: var(--inset); color: var(--mut); margin: 8px 0; }
+.res-mode.api { background: #eaf2fd; color: #184f95; }
+.res-mode a { color: inherit; font-weight: 600; }
+.res-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.res-chips .chip { font-size: 11.5px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; }
+.res-chips .chip i, .dotf { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dotf { margin-right: 6px; vertical-align: middle; }
+.res-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
+.res-kpis div { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.res-kpis b { display: block; font-size: 16px; } .res-kpis small { color: var(--mut); font-size: 10.5px; }
+.res-kpis .bad b { color: #b42318; }
+.res .board tr.sel td { background: #f3f7fd; }
+.mbar { display: inline-block; width: 46px; height: 6px; background: #eef0f3; border-radius: 3px; margin-right: 6px; vertical-align: middle; overflow: hidden; }
+.mbar i { display: block; height: 100%; }
+.bad-t { color: #b42318; font-weight: 600; }
+.res-plan { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.res-plan span { font-weight: 600; }
+.res-plan select { margin-left: 4px; }
+.res-ruta { margin-top: 8px; }
+.res-viatge { font-size: 11.5px; padding: 4px 0; border-top: 1px solid var(--line); }

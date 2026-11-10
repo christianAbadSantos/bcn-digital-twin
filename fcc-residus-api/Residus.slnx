@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Residus.Api/Residus.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Residus.Tests/Residus.Tests.csproj" />
+  </Folder>
+</Solution>

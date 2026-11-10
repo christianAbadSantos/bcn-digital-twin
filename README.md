@@ -218,3 +218,11 @@ Pestaña **Urgencias** del panel y capas **Urgencias** y **Balizas V16 (real)** 
 - **Muelle del hospital (IFC de ejemplo):** `public/data/hospital-clinic-urgencias.ifc` es un IFC4 generado con `node scripts/build-hospital-ifc.mjs`. Está georreferenciado en la entrada de urgencias real (OpenStreetMap) y tiene cada bahía como `IfcSpace` de tipo `PARKING`, con su geometría y el conjunto de propiedades `Pset_BCN_BahiaAmbulancia` (tipo de unidad, medidas, acceso al box de críticos). La app lo lee con web-ifc en un worker (`src/hospitalIfc.js`); con el IFC real del hospital funcionaría igual. Se comprueba con `node scripts/check-hospital-ifc.mjs`.
 - **ETA y bahía (`shared/emergency.js`):** ETA = tiempo de ruta pendiente × congestión de los sensores cercanos (con sirenas, la mitad) + 4 min por cada baliza V16 a menos de 120 m de la ruta pendiente. Las llegadas se ordenan por ETA y a cada una se le asigna la bahía compatible que antes quede libre (las SVA tienen bahías propias), manteniendo la anterior si no empeora más de 1 minuto.
 - **Probarlo:** "Simular V16 en una ruta" pone una baliza simulada en la ruta de la ambulancia que más tarda y se ve cómo cambia su ETA y su bahía. "Ver el muelle" acerca el mapa a vista de planta para ver las bahías (libre, reservada u ocupada).
+
+## Residuos y limpieza (con API en .NET)
+
+Pestaña **Residuos** del panel y capa **Residuos** del mapa: unos 7.500 contenedores reales de Barcelona (OpenStreetMap) con un sensor de llenado cada uno, los puntos verdes y los puntos críticos de limpieza (Open Data BCN), y la planificación de la ruta de recogida desde una base en la Zona Franca.
+
+- **Datos reales:** `node scripts/build-residus-data.mjs` genera `public/data/residus.json` (posiciones y fracciones de los contenedores, puntos verdes y puntos críticos de limpieza con su último estado).
+- **API .NET (`fcc-residus-api/`):** ASP.NET Core 10 + EF Core + PostgreSQL, con entrada de lecturas LoRaWAN (webhook de The Things Stack), planificador de rutas (vecino más próximo + 2-opt, varios viajes según la capacidad del camión), indicadores, un panel MVC y tests con xUnit. Ver su README.
+- **Sin API** (por ejemplo, en la web publicada), el gemelo simula lo mismo en el navegador con la misma lógica (`shared/residus.js`).

@@ -24,6 +24,7 @@ const GROUPS = {
   rodalies: ['rodalies-dot', 'rodalies-label'],
   reports: ['reports-halo', 'reports-dot'],
   v16: ['v16-halo', 'v16-dot', 'v16-label'],
+  res: ['pcritic', 'res-route', 'res-dot', 'res-stop', 'pverd', 'pverd-label', 'res-base', 'res-base-label'],
   urg: ['amb-route', 'apron-fill', 'bays-fill', 'bays-line', 'bays-label', 'hosp-dot', 'hosp-label', 'amb-dot', 'amb-label'],
   trees: ['trees3d'],
   traffic: ['zones-circle'],
@@ -80,7 +81,11 @@ function accidentsGeo(accidents, from, to) {
 const BAY_COLOR = ['match', ['get', 'state'], 'ocupada', '#d03b3b', 'reservada', '#fab219', '#0ca30c']
 const hhmm = (ms) => (ms ? new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—')
 
-export default function MapTwin({ data, hour, layers, live, emergency, focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
+const FILL_COLOR = ['step', ['get', 'n'], '#0ca30c', 50, '#fab219', 80, '#ec835a', 100, '#d03b3b']
+const FRACCIO_ES = { Rebuig: 'Resto', Envasos: 'Envases', Paper: 'Papel y cartón', Vidre: 'Vidrio', Organica: 'Orgánica' }
+const FRACCIO_TINT = { Rebuig: '#6b7280', Envasos: '#e2b100', Paper: '#2a78d6', Vidre: '#0ca30c', Organica: '#8a5a2b' }
+
+export default function MapTwin({ data, hour, layers, live, emergency, residus, resFraccio = 'all', focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
   const box = useRef(null)
   const mapRef = useRef(null)
   const liveRef = useRef(live)
@@ -219,6 +224,30 @@ export default function MapTwin({ data, hour, layers, live, emergency, focus, ro
       map.on('mouseleave', 'reports-dot', () => (map.getCanvas().style.cursor = pickRef.current ? 'crosshair' : ''))
       // modo "elegir punto" para un reporte nuevo
       map.on('click', (e) => pickRef.current?.({ lon: e.lngLat.lng, lat: e.lngLat.lat }))
+
+      // ---- residuos: puntos críticos de limpieza, contenedores con sensor, ruta de recogida, puntos verdes
+      map.addSource('pcritic', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'pcritic', type: 'circle', source: 'pcritic', minzoom: 11, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 4, 16, 9], 'circle-color': '#8a5a2b', 'circle-opacity': ['interpolate', ['linear'], ['get', 'estat'], 0, 0.15, 40, 0.55], 'circle-stroke-color': '#8a5a2b', 'circle-stroke-width': 1 } })
+      map.addSource('res-route', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'res-route', type: 'line', source: 'res-route', layout: { 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': 3, 'line-dasharray': [2, 1.2], 'line-opacity': 0.85 } })
+      map.addSource('res', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'res-dot', type: 'circle', source: 'res', minzoom: 12, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 2.2, 15, 4.5, 17, 7], 'circle-color': FILL_COLOR, 'circle-stroke-color': ['get', 'tint'], 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2] } })
+      map.addSource('res-stop', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'res-stop', type: 'symbol', source: 'res-stop', minzoom: 13, layout: { 'text-field': ['get', 'n'], 'text-size': 10.5, 'text-font': ['Noto Sans Bold'], 'text-offset': [0, -1.1], 'text-allow-overlap': false }, paint: { 'text-color': '#101828', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 } })
+      map.addSource('pverd', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'pverd', type: 'circle', source: 'pverd', paint: { 'circle-radius': 7, 'circle-color': '#0ca30c', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 } })
+      map.addLayer({ id: 'pverd-label', type: 'symbol', source: 'pverd', minzoom: 13, layout: { 'text-field': ['get', 'nom'], 'text-size': 10.5, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-font': ['Noto Sans Regular'], 'text-max-width': 12 }, paint: { 'text-color': '#067a06', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 } })
+      map.addSource('res-base', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'res-base', type: 'circle', source: 'res-base', paint: { 'circle-radius': 10, 'circle-color': '#184f95', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 } })
+      map.addLayer({ id: 'res-base-label', type: 'symbol', source: 'res-base', layout: { 'text-field': ['get', 'nom'], 'text-size': 11, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-font': ['Noto Sans Bold'] }, paint: { 'text-color': '#184f95', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 } })
+      const popR = (id, fn) => {
+        map.on('click', id, (e) => new maplibregl.Popup({ closeButton: false, maxWidth: '300px' }).setLngLat(e.lngLat).setText(fn(e.features[0].properties)).addTo(map))
+        map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer'))
+        map.on('mouseleave', id, () => (map.getCanvas().style.cursor = pickRef.current ? 'crosshair' : ''))
+      }
+      popR('res-dot', (p) => `${FRACCIO_ES[p.f] || p.f} · ${p.n} %${p.s ? ' · soterrado' : ''} · contenedor ${p.id} · posición real (OpenStreetMap), llenado simulado`)
+      popR('pverd', (p) => `${p.nom} · ${p.tipus === 'zona' ? 'punto verde de zona' : 'punto verde de barrio'} · Open Data BCN`)
+      popR('pcritic', (p) => `Punto crítico de limpieza · ${p.carrer} (${p.barri}) · ${p.motiu} · índice de suciedad ${p.estat} en la última visita (Open Data BCN, 2018)`)
 
       // ---- urgencias: hospital (IFC), bahías, ambulancias y balizas V16
       map.addSource('amb-route', { type: 'geojson', data: EMPTY })
@@ -373,6 +402,37 @@ export default function MapTwin({ data, hour, layers, live, emergency, focus, ro
     map.getSource('rodalies')?.setData({ type: 'FeatureCollection', features: ts.map((t) => pt(t.lon, t.lat, { id: t.id, line: t.line, color: t.color, delay: t.delayMin ?? 0, delayTxt: txt(t), text: t.delayMin > 0 ? `${t.line} +${t.delayMin}'` : t.line })) })
   }, [ready, live?.rodalies])
 
+  // ---- residuos
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !residus?.dades) return
+    const d = residus.dades
+    map.getSource('pverd')?.setData({ type: 'FeatureCollection', features: d.puntsVerds.map((p) => pt(p.lon, p.lat, { nom: p.nom.replace(/^Punt Verd (de )?/, 'Punt verd '), tipus: p.tipus })) })
+    map.getSource('pcritic')?.setData({ type: 'FeatureCollection', features: d.puntsCritics.map((p) => pt(p.lon, p.lat, { carrer: p.carrer, barri: p.barri, motiu: p.motiu, estat: p.estat ?? 0 })) })
+    map.getSource('res-base')?.setData({ type: 'FeatureCollection', features: [pt(2.136, 41.344, { nom: 'Base Zona Franca' })] })
+  }, [ready, residus?.dades])
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !residus) return
+    const cs = resFraccio === 'all' ? residus.cs : residus.cs.filter((c) => c.fraccio === resFraccio)
+    map.getSource('res')?.setData({ type: 'FeatureCollection', features: cs.map((c) => pt(c.lon, c.lat, { id: c.id, f: c.fraccio, n: c.nivellPct, s: c.soterrat ? 1 : 0, tint: FRACCIO_TINT[c.fraccio] })) })
+  }, [ready, residus?.cs, resFraccio])
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !residus) return
+    const r = residus.ruta
+    if (!r || !r.viatges?.length) {
+      map.getSource('res-route')?.setData(EMPTY)
+      map.getSource('res-stop')?.setData(EMPTY)
+      return
+    }
+    const base = [r.baseLon, r.baseLat]
+    const colors = ['#184f95', '#6250d6', '#c2410c', '#0f766e', '#a21caf']
+    let k = 0
+    map.getSource('res-route')?.setData({ type: 'FeatureCollection', features: r.viatges.map((v, i) => ({ type: 'Feature', properties: { color: colors[i % colors.length] }, geometry: { type: 'LineString', coordinates: [base, ...v.parades.map((p) => [p.lon, p.lat]), base] } })) })
+    map.getSource('res-stop')?.setData({ type: 'FeatureCollection', features: r.viatges.flatMap((v) => v.parades.map((p) => pt(p.lon, p.lat, { n: String(++k) }))) })
+  }, [ready, residus?.ruta])
+
   // ---- urgencias: balizas V16
   useEffect(() => {
     const map = mapRef.current
@@ -435,6 +495,10 @@ export default function MapTwin({ data, hour, layers, live, emergency, focus, ro
       map.fitBounds(PORT_BOUNDS, { padding: 50, pitch: 45, bearing: -35, duration: 1600, maxZoom: 14 })
       return
     }
+    if (focus.bounds) {
+      map.fitBounds(focus.bounds, { padding: 60, pitch: 30, bearing: 0, duration: 1600, maxZoom: 15.5 })
+      return
+    }
     map.flyTo({ center: [focus.lon, focus.lat], zoom: focus.zoom ?? 14.3, pitch: focus.pitch ?? 65, bearing: focus.bearing ?? map.getBearing(), duration: 1400 })
     // vista de planta (p. ej. el muelle de urgencias, en la planta -1): los edificios se aplanan a su
     // huella para ver lo que hay dentro; al alejarse (zoom < 17) vuelven a su altura
@@ -482,6 +546,9 @@ export default function MapTwin({ data, hour, layers, live, emergency, focus, ro
         )}
         {layers.rodalies && live?.rodalies && (
           <div className="muted">Rodalies: {live.rodalies.status === 'ok' ? `${live.rodalies.trains.length} trenes en tiempo real (Renfe, datos abiertos)` : 'sin datos de Renfe ahora mismo'}</div>
+        )}
+        {layers.res && residus && (
+          <div className="muted">Residuos: {residus.cs.length.toLocaleString('es')} contenedores reales (OpenStreetMap) · llenado simulado {residus.mode === 'api' ? 'por la API .NET + PostgreSQL' : 'en el navegador'} · puntos verdes y puntos críticos de limpieza: Open Data BCN</div>
         )}
         {layers.v16 && emergency && (
           <div className="muted">Balizas V16: {emergency.v16.status === 'ok' ? `${emergency.v16.beacons.length} encendidas ahora en Cataluña (DGT 3.0, datos abiertos)` : emergency.v16.status === 'down' ? 'sin datos de la DGT ahora mismo' : 'cargando…'}</div>
