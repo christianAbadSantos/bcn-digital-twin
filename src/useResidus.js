@@ -7,7 +7,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FRACCIONS, avanca, capacitat, hash, kg, planifica } from '../shared/residus.js'
 
 const DATA_URL = '/data/residus.json'
-const API = import.meta.env.VITE_RESIDUS_API ?? (location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? 'http://localhost:5080' : '')
+// API .NET: en local la de dotnet run; en la web publicada, la desplegada en MonsterASP (SQL Server)
+const API = import.meta.env.VITE_RESIDUS_API ?? (location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? 'http://localhost:5080' : 'https://residus-bcn.runasp.net')
 const POLL_MS = 20000
 export const BASE = { lat: 41.344, lon: 2.136, nom: 'Base Zona Franca (ubicación aproximada)' }
 const CAPACITAT_KG = 9000

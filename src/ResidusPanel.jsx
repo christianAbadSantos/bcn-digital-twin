@@ -34,9 +34,9 @@ export default function ResidusPanel({ res, fraccio, setFraccio, onFocus }) {
 
       <div className={`res-mode ${res.mode}`}>
         {res.mode === 'api' ? (
-          <>Conectado a la <b>API .NET</b> (ASP.NET Core · EF Core · PostgreSQL) · <a href={`${res.api}/panel`} target="_blank" rel="noopener">panel MVC</a> · <a href={`${res.api}/scalar`} target="_blank" rel="noopener">documentación</a></>
+          <>Conectado a la <b>API .NET</b> (ASP.NET Core · EF Core · {res.api.includes('localhost') ? 'PostgreSQL' : 'SQL Server'}) · <a href={`${res.api}/panel`} target="_blank" rel="noopener">panel MVC</a> · <a href={`${res.api}/scalar`} target="_blank" rel="noopener">documentación</a></>
         ) : res.mode === 'local' ? (
-          <>Simulación en el navegador (la API .NET no está en marcha). Mismo modelo y mismo planificador que la API.</>
+          <>Simulación en el navegador (la API .NET no responde ahora mismo; se reintenta cada 20 s). Mismo modelo y mismo planificador que la API.</>
         ) : 'Cargando contenedores…'}
       </div>
 
