@@ -22,6 +22,19 @@ public class OpcionsSimulador
     /// <summary>Parte de los contenedores que envía lectura en cada tick (el resto solo avanza).</summary>
     public double FraccioLectures { get; set; } = 0.05;
     public int RetencioHores { get; set; } = 48;
+    /// <summary>
+    /// Si nadie consulta la API en estos minutos, la simulación se pausa (0 = nunca). En la nube evita
+    /// tener la base de datos despierta todo el día y gastar el cupo gratuito.
+    /// </summary>
+    public int PausaSenseUsMinuts { get; set; } = 0;
+}
+
+/// <summary>Hora de la última petición a la API (para pausar la simulación si nadie la usa).</summary>
+public class Activitat
+{
+    private long _ultima = DateTimeOffset.UtcNow.UtcTicks;
+    public void Marca() => Interlocked.Exchange(ref _ultima, DateTimeOffset.UtcNow.UtcTicks);
+    public TimeSpan DesDeUltima => TimeSpan.FromTicks(DateTimeOffset.UtcNow.UtcTicks - Interlocked.Read(ref _ultima));
 }
 
 /// <summary>Datos iniciales (appsettings.json → "Dades").</summary>

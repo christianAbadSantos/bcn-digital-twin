@@ -10,7 +10,7 @@ namespace Residus.Api.Services;
 /// todos los contenedores (según <see cref="OmplimentModel"/>) y una parte envía su lectura, como
 /// harían sensores LoRaWAN reales. Las lecturas antiguas se borran para no llenar la base de datos.
 /// </summary>
-public class SimuladorSensors(IServiceScopeFactory scopes, IOptions<OpcionsSimulador> opcions, ILogger<SimuladorSensors> log) : BackgroundService
+public class SimuladorSensors(IServiceScopeFactory scopes, IOptions<OpcionsSimulador> opcions, Activitat activitat, ILogger<SimuladorSensors> log) : BackgroundService
 {
     private static readonly TimeZoneInfo Bcn = TimeZoneInfo.FindSystemTimeZoneById("Europe/Madrid");
 
@@ -23,6 +23,8 @@ public class SimuladorSensors(IServiceScopeFactory scopes, IOptions<OpcionsSimul
         using var timer = new PeriodicTimer(tick);
         while (await timer.WaitForNextTickAsync(ct))
         {
+            // sin visitas en un rato → en pausa (la base de datos puede dormirse)
+            if (o.PausaSenseUsMinuts > 0 && activitat.DesDeUltima > TimeSpan.FromMinutes(o.PausaSenseUsMinuts)) continue;
             try
             {
                 await TickAsync(tick.TotalHours * o.Acceleracio, o, n++, ct);

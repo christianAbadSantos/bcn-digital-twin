@@ -7,14 +7,21 @@
     <UserSecretsId>e90121ac-6d5a-4ad9-b570-c1f64aa71dff</UserSecretsId>
   </PropertyGroup>
 
+  <!-- los contenedores reales (generados por scripts/build-residus-data.mjs del gemelo) van dentro de la publicación -->
+  <ItemGroup>
+    <Content Include="..\..\..\public\data\residus.json" Link="data\residus.json" CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.14" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.19.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 
 </Project>

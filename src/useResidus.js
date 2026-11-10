@@ -53,7 +53,7 @@ export function useResidus() {
       if (API) {
         const t0 = performance.now()
         try {
-          const ctl = AbortSignal.timeout(4000)
+          const ctl = AbortSignal.timeout(8000) // en la nube la API puede tardar en despertar
           const [c, k] = await Promise.all([fetch(`${API}/api/contenidors`, { signal: ctl }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status)))), fetch(`${API}/api/kpis`, { signal: ctl }).then((r) => r.json())])
           if (stop) return
           setCs(c)
