@@ -23,6 +23,8 @@ const GROUPS = {
   fiware: ['fiware-halo', 'fiware-dot'],
   rodalies: ['rodalies-dot', 'rodalies-label'],
   reports: ['reports-halo', 'reports-dot'],
+  v16: ['v16-halo', 'v16-dot', 'v16-label'],
+  urg: ['amb-route', 'apron-fill', 'bays-fill', 'bays-line', 'bays-label', 'hosp-dot', 'hosp-label', 'amb-dot', 'amb-label'],
   trees: ['trees3d'],
   traffic: ['zones-circle'],
   accidents: ['acc-heat', 'acc-now-dot', 'inc-halo', 'inc-dot'],
@@ -75,7 +77,10 @@ function accidentsGeo(accidents, from, to) {
   return { type: 'FeatureCollection', features: accidents.filter((a) => a.hourIdx >= from && a.hourIdx <= to).map((a) => pt(a.lon, a.lat, { sev: a.sev })) }
 }
 
-export default function MapTwin({ data, hour, layers, live, focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
+const BAY_COLOR = ['match', ['get', 'state'], 'ocupada', '#d03b3b', 'reservada', '#fab219', '#0ca30c']
+const hhmm = (ms) => (ms ? new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—')
+
+export default function MapTwin({ data, hour, layers, live, emergency, focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
   const box = useRef(null)
   const mapRef = useRef(null)
   const liveRef = useRef(live)
@@ -105,6 +110,7 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
       attributionControl: { compact: true },
     })
     mapRef.current = map
+    if (import.meta.env.DEV) window.__map = map // para depurar desde la consola en local
     map.addControl(new maplibregl.NavigationControl(), 'top-left')
     map.on('error', (e) => {
       const m = e?.error?.message || ''
@@ -213,6 +219,36 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
       map.on('mouseleave', 'reports-dot', () => (map.getCanvas().style.cursor = pickRef.current ? 'crosshair' : ''))
       // modo "elegir punto" para un reporte nuevo
       map.on('click', (e) => pickRef.current?.({ lon: e.lngLat.lng, lat: e.lngLat.lat }))
+
+      // ---- urgencias: hospital (IFC), bahías, ambulancias y balizas V16
+      map.addSource('amb-route', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'amb-route', type: 'line', source: 'amb-route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['case', ['get', 'v16'], '#d03b3b', '#184f95'], 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.5, 15, 4], 'line-opacity': 0.55 } })
+      map.addSource('apron', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'apron-fill', type: 'fill', source: 'apron', minzoom: 15, paint: { 'fill-color': '#184f95', 'fill-opacity': 0.08, 'fill-outline-color': '#184f95' } })
+      map.addSource('bays', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'bays-fill', type: 'fill-extrusion', source: 'bays', minzoom: 15, paint: { 'fill-extrusion-color': BAY_COLOR, 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-opacity': 0.8 } })
+      map.addLayer({ id: 'bays-line', type: 'line', source: 'bays', minzoom: 15, paint: { 'line-color': '#ffffff', 'line-width': 1.5 } })
+      map.addSource('bays-pt', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'bays-label', type: 'symbol', source: 'bays-pt', minzoom: 17.9, layout: { 'text-field': ['get', 'label'], 'text-size': 12, 'text-offset': [0, -1.6], 'text-font': ['Noto Sans Bold'], 'text-allow-overlap': true }, paint: { 'text-color': '#101828', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 } })
+      map.addSource('hosp', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'hosp-dot', type: 'circle', source: 'hosp', paint: { 'circle-radius': 10, 'circle-color': '#d03b3b', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 } })
+      map.addLayer({ id: 'hosp-label', type: 'symbol', source: 'hosp', layout: { 'text-field': 'H', 'text-size': 13, 'text-font': ['Noto Sans Bold'], 'text-allow-overlap': true }, paint: { 'text-color': '#ffffff' } })
+      map.addSource('amb', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'amb-dot', type: 'circle', source: 'amb', paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 15, 8], 'circle-color': '#ffffff', 'circle-stroke-color': ['case', ['get', 'v16'], '#d03b3b', ['==', ['get', 'tipo'], 'SVA'], '#c21f1f', '#e8833a'], 'circle-stroke-width': 3.5 } })
+      map.addLayer({ id: 'amb-label', type: 'symbol', source: 'amb', minzoom: 11, layout: { 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0, 1.3], 'text-anchor': 'top', 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#101828', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 } })
+      map.addSource('v16', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'v16-halo', type: 'circle', source: 'v16', paint: { 'circle-radius': 16, 'circle-color': '#f59e0b', 'circle-opacity': 0.22 } })
+      map.addLayer({ id: 'v16-dot', type: 'circle', source: 'v16', paint: { 'circle-radius': 6.5, 'circle-color': '#f59e0b', 'circle-stroke-color': ['case', ['get', 'sim'], '#6250d6', '#ffffff'], 'circle-stroke-width': 2.5 } })
+      map.addLayer({ id: 'v16-label', type: 'symbol', source: 'v16', minzoom: 9, layout: { 'text-field': ['get', 'label'], 'text-size': 10.5, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#8a5a00', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 } })
+      const pop = (id, fn) => {
+        map.on('click', id, (e) => new maplibregl.Popup({ closeButton: false, maxWidth: '300px' }).setLngLat(e.lngLat).setText(fn(e.features[0].properties)).addTo(map))
+        map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer'))
+        map.on('mouseleave', id, () => (map.getCanvas().style.cursor = pickRef.current ? 'crosshair' : ''))
+      }
+      pop('v16-dot', (p) => (p.sim ? 'Baliza V16 SIMULADA (para ver su efecto en la ETA)' : `Baliza V16 encendida · ${p.road}${p.km ? ' km ' + p.km : ''} · ${p.muni} · desde las ${p.since} · dato real DGT 3.0`))
+      pop('amb-dot', (p) => p.info)
+      pop('bays-fill', (p) => p.info)
+      pop('hosp-dot', () => 'Hospital Clínic · Urgencias. Bahías leídas del IFC del muelle de ambulancias (modelo de ejemplo).')
 
       // ruta recomendada
       map.addSource('route', { type: 'geojson', data: EMPTY })
@@ -337,6 +373,35 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
     map.getSource('rodalies')?.setData({ type: 'FeatureCollection', features: ts.map((t) => pt(t.lon, t.lat, { id: t.id, line: t.line, color: t.color, delay: t.delayMin ?? 0, delayTxt: txt(t), text: t.delayMin > 0 ? `${t.line} +${t.delayMin}'` : t.line })) })
   }, [ready, live?.rodalies])
 
+  // ---- urgencias: balizas V16
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !emergency) return
+    map.getSource('v16')?.setData({ type: 'FeatureCollection', features: emergency.beacons.map((b) => pt(b.lon, b.lat, { sim: Boolean(b.sim), road: b.road, km: b.km ?? '', muni: b.municipality, since: hhmm(b.since), label: b.sim ? 'V16 (simulada)' : `V16 · ${b.road}` })) })
+  }, [ready, emergency?.beacons])
+
+  // ---- urgencias: hospital, bahías y ambulancias (cada segundo)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !emergency?.hospital) return
+    const h = emergency.hospital
+    map.getSource('hosp')?.setData({ type: 'FeatureCollection', features: [pt(h.entrance[0], h.entrance[1])] })
+    map.getSource('apron')?.setData(h.apron ? { type: 'Feature', properties: {}, geometry: h.apron } : EMPTY)
+  }, [ready, emergency?.hospital])
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !emergency) return
+    const bays = emergency.bays
+    const bayInfo = (b) => `${b.name} · ${b.w} × ${b.l} m${b.box ? ' · acceso directo al box de críticos' : ''} · ${b.state === 'ocupada' ? `ocupada por ${b.occ.id} hasta las ${hhmm(b.occ.until)}` : b.next ? `próxima: ${b.next.id} a las ${hhmm(b.next.etaMs)}` : 'libre'} · (del IFC)`
+    map.getSource('bays')?.setData({ type: 'FeatureCollection', features: bays.map((b) => ({ type: 'Feature', properties: { state: b.state, info: bayInfo(b), h: b.h || 3 }, geometry: b.polygon })) })
+    map.getSource('bays-pt')?.setData({ type: 'FeatureCollection', features: bays.map((b) => pt(b.center[0], b.center[1], { label: b.code })) })
+    const vis = emergency.amb.filter((a) => a.phase !== 'base' && a.pos)
+    const label = (a) => (a.phase === 'bahia' ? `${a.id} en ${a.bay}` : a.phase === 'espera' ? `${a.id} esperando ${a.bay || 'bahía'}` : `${a.id} · ${a.etaMin}′ → ${a.bay || '?'}`)
+    const info = (a) => `${a.id} (${a.tipo}) desde ${a.origen} · ${a.phase === 'bahia' ? `en la bahía ${a.bay} hasta las ${hhmm(a.until)}` : a.phase === 'espera' ? `esperando bahía ${a.bay || ''}` : `llega a las ${hhmm(a.etaMs)} (${a.etaMin} min) · bahía ${a.bay || 'por asignar'}${a.waitMin ? ` (espera ${a.waitMin} min)` : ''}${a.v16.length ? ` · ${a.v16.length} baliza(s) V16 en la ruta` : ''} · ${Math.round(a.speedKmh)} km/h`} · GPS por LoRaWAN (simulado)`
+    map.getSource('amb')?.setData({ type: 'FeatureCollection', features: vis.map((a) => pt(a.pos[0], a.pos[1], { tipo: a.tipo, v16: a.v16.length > 0, label: label(a), info: info(a) })) })
+    map.getSource('amb-route')?.setData({ type: 'FeatureCollection', features: vis.filter((a) => a.path?.length > 1).map((a) => ({ type: 'Feature', properties: { v16: a.v16.length > 0 }, geometry: { type: 'LineString', coordinates: a.path } })) })
+  }, [ready, emergency?.amb, emergency?.bays])
+
   // ---- FIWARE
   useEffect(() => {
     const map = mapRef.current
@@ -370,7 +435,21 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
       map.fitBounds(PORT_BOUNDS, { padding: 50, pitch: 45, bearing: -35, duration: 1600, maxZoom: 14 })
       return
     }
-    map.flyTo({ center: [focus.lon, focus.lat], zoom: 14.3, pitch: 65, duration: 1400 })
+    map.flyTo({ center: [focus.lon, focus.lat], zoom: focus.zoom ?? 14.3, pitch: focus.pitch ?? 65, bearing: focus.bearing ?? map.getBearing(), duration: 1400 })
+    // vista de planta (p. ej. el muelle de urgencias, en la planta -1): los edificios se aplanan a su
+    // huella para ver lo que hay dentro; al alejarse (zoom < 17) vuelven a su altura
+    if (focus.plan && map.getLayer('bld3d')) {
+      const H = ['coalesce', ['get', 'render_height'], 8]
+      map.setPaintProperty('bld3d', 'fill-extrusion-height', ['interpolate', ['linear'], ['zoom'], 17, H, 17.8, 0.2])
+      map.setPaintProperty('bld3d', 'fill-extrusion-base', 0)
+      const restore = () => {
+        if (map.getZoom() >= 17) return
+        map.setPaintProperty('bld3d', 'fill-extrusion-height', H)
+        map.setPaintProperty('bld3d', 'fill-extrusion-base', ['coalesce', ['get', 'render_min_height'], 0])
+        map.off('zoomend', restore)
+      }
+      map.on('zoomend', restore)
+    }
   }, [ready, focus])
 
   // ---- teselas 3D opcionales
@@ -403,6 +482,12 @@ export default function MapTwin({ data, hour, layers, live, focus, route, tilesU
         )}
         {layers.rodalies && live?.rodalies && (
           <div className="muted">Rodalies: {live.rodalies.status === 'ok' ? `${live.rodalies.trains.length} trenes en tiempo real (Renfe, datos abiertos)` : 'sin datos de Renfe ahora mismo'}</div>
+        )}
+        {layers.v16 && emergency && (
+          <div className="muted">Balizas V16: {emergency.v16.status === 'ok' ? `${emergency.v16.beacons.length} encendidas ahora en Cataluña (DGT 3.0, datos abiertos)` : emergency.v16.status === 'down' ? 'sin datos de la DGT ahora mismo' : 'cargando…'}</div>
+        )}
+        {layers.urg && emergency && (
+          <div className="muted">Urgencias: ambulancias simuladas (GPS LoRaWAN) en rutas reales · bahías del IFC de ejemplo del Clínic{emergency.err ? ` · ${emergency.err}` : ''}</div>
         )}
         {layers.fiware && live?.fiware && (
           <div className={live.fiware.status === 'ok' ? 'muted' : 'muted'}>

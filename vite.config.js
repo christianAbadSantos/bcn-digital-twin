@@ -16,6 +16,13 @@ export default defineConfig({
         headers: { 'user-agent': 'bcn-digital-twin/0.5 (+https://bcn-digital-twin.pages.dev)' },
         rewrite: (p) => p.slice('/renfe'.length),
       },
+      // balizas V16 / incidencias de la DGT (DATEX II, sin CORS)
+      '/dgt': {
+        target: 'https://nap.dgt.es',
+        changeOrigin: true,
+        headers: { 'user-agent': 'bcn-digital-twin/0.5 (+https://bcn-digital-twin.pages.dev)' },
+        rewrite: (p) => p.slice('/dgt'.length),
+      },
       '/api/ifc': {
         target: 'https://serveis.portdebarcelona.cat',
         changeOrigin: true,

@@ -555,3 +555,32 @@ input[type=range] { accent-color: var(--acc); }
 
 /* los popups del mapa por encima de las etiquetas de los trenes */
 .maplibregl-popup { z-index: 5; }
+
+/* ---- urgencias: muelle de ambulancias, tablero de llegadas y balizas V16 */
+.urg h3 { font-size: 12.5px; margin: 16px 0 8px; color: var(--txt); text-transform: uppercase; letter-spacing: .04em; }
+.urg h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.urg .small { font-size: 11.5px; }
+.urg-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.urg-actions .btn { font-size: 12px; padding: 6px 10px; }
+.bays { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.bay { background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--ok); border-radius: 6px; padding: 6px 8px; font-size: 11.5px; }
+.bay.reservada { border-left-color: #fab219; }
+.bay.ocupada { border-left-color: var(--bad); }
+.bay-top { display: flex; justify-content: space-between; align-items: baseline; }
+.bay-top b { font-size: 14px; } .bay-top span { color: var(--mut); font-size: 10.5px; }
+.bay-st { font-weight: 600; margin-top: 2px; }
+.bay.libre .bay-st { color: #067a06; } .bay.reservada .bay-st { color: #8a5a00; } .bay.ocupada .bay-st { color: #b42318; }
+.bay-sub { color: var(--mut); font-size: 10.5px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.board { width: 100%; border-collapse: collapse; font-size: 11.5px; background: #fff; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.board th { text-align: left; font-weight: 600; color: var(--mut); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; padding: 6px; background: var(--inset); }
+.board td { padding: 6px; border-top: 1px solid var(--line); vertical-align: top; }
+.board tbody tr { cursor: pointer; } .board tbody tr:hover { background: #f6f8fb; }
+.board tr.late td:last-child { color: #b42318; font-weight: 600; }
+.board .tag { font-size: 9.5px; padding: 1px 4px; border-radius: 3px; background: #fde8e8; color: #b42318; font-weight: 600; }
+.board .tag.svb { background: #fdf0e6; color: #a5521b; }
+.warn-t { color: #8a5a00; font-weight: 600; }
+.v16-list { display: grid; gap: 4px; }
+.v16-row { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; text-align: left; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 11.5px; cursor: pointer; color: var(--txt); }
+.v16-row i { width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.25); }
+.v16-row.sim i { box-shadow: 0 0 0 2px #6250d6; }
+.v16-row small { color: var(--mut); }
