@@ -6,6 +6,10 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// En el hosting (IIS) la cadena de conexión con la contraseña va en appsettings.Secrets.json, que solo
+// existe en el servidor (archivo protegido: los despliegues desde Git no lo tocan) y nunca en el repositorio.
+builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: false);
+
 builder.Services.Configure<OpcionsOperacio>(builder.Configuration.GetSection("Operacio"));
 builder.Services.Configure<OpcionsSimulador>(builder.Configuration.GetSection("Simulador"));
 builder.Services.Configure<OpcionsDades>(builder.Configuration.GetSection("Dades"));
