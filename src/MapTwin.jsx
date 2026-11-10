@@ -548,7 +548,7 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
           <div className="muted">Rodalies: {live.rodalies.status === 'ok' ? `${live.rodalies.trains.length} trenes en tiempo real (Renfe, datos abiertos)` : 'sin datos de Renfe ahora mismo'}</div>
         )}
         {layers.res && residus && (
-          <div className="muted">Residuos: {residus.cs.length.toLocaleString('es')} contenedores reales (OpenStreetMap) · llenado simulado {residus.mode === 'api' ? 'por la API .NET + PostgreSQL' : 'en el navegador'} · puntos verdes y puntos críticos de limpieza: Open Data BCN</div>
+          <div className="muted">Residuos: {residus.cs.length.toLocaleString('es')} contenedores reales (OpenStreetMap) · llenado simulado {residus.mode === 'api' ? 'por la API .NET' : 'en el navegador'} · puntos verdes y puntos críticos de limpieza: Open Data BCN</div>
         )}
         {layers.v16 && emergency && (
           <div className="muted">Balizas V16: {emergency.v16.status === 'ok' ? `${emergency.v16.beacons.length} encendidas ahora en Cataluña (DGT 3.0, datos abiertos)` : emergency.v16.status === 'down' ? 'sin datos de la DGT ahora mismo' : 'cargando…'}</div>
