@@ -4,6 +4,10 @@ using Residus.Api.Data;
 using Residus.Api.Services;
 using Scalar.AspNetCore;
 
+// números y fechas en formato español en el panel MVC (7.495, no 7,495)
+System.Globalization.CultureInfo.DefaultThreadCurrentCulture = new("es-ES");
+System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = new("es-ES");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // En el hosting (IIS) la cadena de conexión con la contraseña va en appsettings.Secrets.json, que solo

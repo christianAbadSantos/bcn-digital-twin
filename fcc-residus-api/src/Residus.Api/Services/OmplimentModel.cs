@@ -42,6 +42,18 @@ public static class OmplimentModel
         return Math.Clamp(nou, 0, 100);
     }
 
+    /// <summary>
+    /// Probabilidad de que el servicio ordinario (simulado) vacíe un contenedor en <paramref name="hores"/>
+    /// horas: a partir del 75 % pasa de media cada 4 h; si ya desborda, se prioriza (cada hora).
+    /// Mantiene el llenado medio en valores realistas aunque nadie planifique rutas en la demo.
+    /// </summary>
+    public static double ProbRecollida(double nivell, double hores)
+    {
+        if (hores <= 0 || nivell < 75) return 0;
+        var perHora = nivell >= 100 ? 1.0 : 0.25;
+        return 1 - Math.Exp(-perHora * hores);
+    }
+
     /// <summary>Kilos aproximados que hay en un contenedor (densidad aparente por fracción).</summary>
     public static double Kg(Fraccio f, int litres, double nivellPct)
     {

@@ -47,3 +47,32 @@ public class OmplimentModelTests
         Assert.True(Seeder.Capacitat(Fraccio.Rebuig, soterrat: true) > Seeder.Capacitat(Fraccio.Rebuig, soterrat: false));
     }
 }
+
+public class RecollidaTests
+{
+    [Fact]
+    public void Por_debajo_del_75_no_se_recoge() => Assert.Equal(0, OmplimentModel.ProbRecollida(60, 1));
+
+    [Fact]
+    public void Un_contenedor_desbordado_tiene_prioridad()
+    {
+        Assert.True(OmplimentModel.ProbRecollida(100, 0.5) > OmplimentModel.ProbRecollida(80, 0.5) * 3);
+    }
+
+    [Fact]
+    public void Con_recogida_el_llenado_medio_se_mantiene_realista()
+    {
+        // 2.000 contenedores de resto durante 3 días simulados (pasos de media hora)
+        var niveles = Enumerable.Range(0, 2000).Select(i => 80 * Residus.Api.Data.Seeder.Hash(i)).ToArray();
+        long n = 0;
+        for (var paso = 0; paso < 144; paso++, n++)
+            for (var i = 0; i < niveles.Length; i++)
+            {
+                niveles[i] = OmplimentModel.Avanca(niveles[i], Residus.Api.Domain.Fraccio.Rebuig, paso / 2 % 24, 0.5, 0.6 + 0.8 * Residus.Api.Data.Seeder.Hash(i));
+                if (Residus.Api.Data.Seeder.Hash(i * 7919L + n * 104729L) < OmplimentModel.ProbRecollida(niveles[i], 0.5)) niveles[i] = 2;
+            }
+        var desbordados = niveles.Count(x => x >= 100) / (double)niveles.Length;
+        Assert.InRange(niveles.Average(), 25, 70);
+        Assert.True(desbordados < 0.1, $"desbordados: {desbordados:P0}");
+    }
+}

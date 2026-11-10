@@ -4,7 +4,7 @@
 //     los indicadores y las rutas vienen de la API.
 //   - Si no hay API (p. ej. en la web publicada), se simula lo mismo en el navegador (shared/residus.js).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FRACCIONS, avanca, capacitat, hash, kg, planifica } from '../shared/residus.js'
+import { FRACCIONS, avanca, capacitat, hash, kg, planifica, probRecollida } from '../shared/residus.js'
 
 const DATA_URL = '/data/residus.json'
 // API .NET: en local la de dotnet run; en la web publicada, la desplegada en MonsterASP (SQL Server)
@@ -81,7 +81,11 @@ export function useResidus() {
     const tick = 5000
     const id = setInterval(() => {
       const h = horaBcn()
-      for (const c of local.current || []) c.nivellPct = Math.round(avanca(c.nivellPct, c.fraccio, h, (tick / 3600000) * ACCEL, 0.6 + 0.8 * hash(c.id)) * 10) / 10
+      const hores = (tick / 3600000) * ACCEL
+      for (const c of local.current || []) {
+        c.nivellPct = Math.round(avanca(c.nivellPct, c.fraccio, h, hores, 0.6 + 0.8 * hash(c.id)) * 10) / 10
+        if (Math.random() < probRecollida(c.nivellPct, hores)) c.nivellPct = Math.round(Math.random() * 30) / 10 // recogida ordinaria
+      }
       setCs([...(local.current || [])])
       setEstat((s) => ({ ...s, ts: Date.now() }))
     }, tick)

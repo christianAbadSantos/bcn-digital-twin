@@ -28,7 +28,7 @@ public class ContenidorsController(ResidusDb db) : ControllerBase
         if (minNivell is not null) q = q.Where(c => c.NivellPct >= minNivell);
         if (!string.IsNullOrWhiteSpace(bbox))
         {
-            var b = bbox.Split(',').Select(double.Parse).ToArray();
+            var b = bbox.Split(',').Select(x => double.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             if (b.Length == 4) q = q.Where(c => c.Lat >= b[0] && c.Lon >= b[1] && c.Lat <= b[2] && c.Lon <= b[3]);
         }
         return await q.OrderByDescending(c => c.NivellPct)

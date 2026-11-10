@@ -47,6 +47,12 @@ public class SimuladorSensors(IServiceScopeFactory scopes, IOptions<OpcionsSimul
         {
             var variacio = 0.6 + 0.8 * Seeder.Hash(c.Id);
             c.NivellPct = Math.Round(OmplimentModel.Avanca(c.NivellPct, c.Fraccio, hora, hores, variacio), 1);
+            // el servicio ordinario de recogida (simulado) también pasa: si no, todo acabaría desbordado
+            if (Seeder.Hash(c.Id * 7919L + n * 104729L) < OmplimentModel.ProbRecollida(c.NivellPct, hores))
+            {
+                c.NivellPct = Math.Round(3 * Seeder.Hash(c.Id + n), 1);
+                c.UltimaRecollida = ara;
+            }
             // cada contenedor informa más o menos cada 1/FraccioLectures ticks
             if (Seeder.Hash(c.Id * 31 + n) < o.FraccioLectures)
             {

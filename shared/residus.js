@@ -12,7 +12,9 @@ const KG_L = { Vidre: 0.3, Organica: 0.25, Rebuig: 0.12, Paper: 0.06, Envasos: 0
 
 export const factorHorari = (h) => (h < 6 ? 0.15 : h < 9 ? 1.3 : h < 13 ? 0.9 : h < 16 ? 1.1 : h < 20 ? 0.9 : 1.6)
 export const avanca = (nivell, f, hora, hores, variacio = 1) => (hores <= 0 ? nivell : Math.min(100, Math.max(0, nivell + RITME[f] * factorHorari(hora) * variacio * hores)))
-export const kg = (f, litres, nivellPct) => Math.round(litres * (nivellPct / 100) * KG_L[f] * 10) / 10
+// servicio ordinario de recogida (simulado): desde el 75 % pasa de media cada 4 h; si desborda, cada hora
+export const probRecollida = (nivell, hores) => (hores <= 0 || nivell < 75 ? 0 : 1 - Math.exp(-(nivell >= 100 ? 1 : 0.25) * hores))
+export const kg =(f, litres, nivellPct) => Math.round(litres * (nivellPct / 100) * KG_L[f] * 10) / 10
 export const capacitat = (f, soterrat) => (soterrat ? 3000 : f === 'Envasos' || f === 'Paper' ? 3200 : f === 'Vidre' ? 2500 : 2200)
 
 // mismo hash que Seeder.Hash en C# (aprox.: aquí solo hace falta que sea estable)
