@@ -17,6 +17,8 @@ import { useEmergency } from './useEmergency.js'
 import EmergencyPanel from './EmergencyPanel.jsx'
 import { useResidus } from './useResidus.js'
 import ResidusPanel from './ResidusPanel.jsx'
+import { useUrbanisme } from './urbanisme.js'
+import UrbanismePanel from './UrbanismePanel.jsx'
 
 // Cada vista se carga bajo demanda (maplibre y three pesan bastante)
 const MapTwin = lazy(() => import('./MapTwin.jsx'))
@@ -36,6 +38,7 @@ const CHIPS = {
   rodalies: 'Rodalies (real)',
   reports: 'Reportes',
   res: 'Residuos',
+  urb: 'Urbanismo',
   urg: 'Urgencias',
   v16: 'Balizas V16 (real)',
   metro: 'Metro 3D',
@@ -71,7 +74,8 @@ export default function App() {
   const [focus, setFocus] = useState(null)
   const [sheet, setSheet] = useState(false) // panel inferior en móvil
   const [sel, setSel] = useState({ from: 'aeroport', to: 'catalunya' })
-  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, reports: true, res: true, urg: true, v16: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true })
+  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, reports: true, res: true, urg: true, v16: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true, urb: false })
+  const urbanisme = useUrbanisme(layers.urb)
 
   const ok = Boolean(data && !data.error)
   const [clock, setClock] = useState(() => new Date())
@@ -96,6 +100,11 @@ export default function App() {
 
   const route = useMemo(() => (live ? recommendRoutes(sel.from, sel.to, live) : null), [live, sel])
   const toggle = (k) => setLayers((l) => ({ ...l, [k]: !l[k] }))
+  const showUrb = () => setLayers((l) => ({ ...l, urb: true }))
+  const goTab = (t) => {
+    setTab(t)
+    if (t === 'urb') showUrb()
+  }
   const chips = view === 'map' ? Object.keys(CHIPS).filter((k) => k !== 'labels' && (k !== 'tiles3d' || HAS_TILES3D)) : SCENE_CHIPS
   const showTimeline = view === 'scene' || (view === 'map' && tab === 'historico')
   const crit = live ? live.alerts.filter((a) => a.sev === 'crit').length : 0
@@ -154,7 +163,7 @@ export default function App() {
           ) : (
             <Suspense fallback={<div className="gate"><div className="card">Cargando vista…</div></div>}>
               {view === 'map' ? (
-                <MapTwin data={data} hour={hour} layers={layers} live={live} emergency={emergency} residus={layers.res ? residus : null} resFraccio={resFraccio} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} googleKey={GOOGLE_KEY} tier={TIER.key}
+                <MapTwin data={data} hour={hour} layers={layers} live={live} emergency={emergency} residus={layers.res ? residus : null} resFraccio={resFraccio} urbanisme={urbanisme} onUrbPick={(p) => { urbanisme.tria(p); setTab('urb') }} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} googleKey={GOOGLE_KEY} tier={TIER.key}
                   picking={picking} onPick={(p) => { setPicking(false); setReportPoint(p) }} />
               ) : (
                 <ThreeTwin data={data} hour={hour} layers={layers} live={live} />
@@ -172,6 +181,7 @@ export default function App() {
             </button>
             <button className={tab === 'urg' ? 'on' : ''} onClick={() => setTab('urg')}>Urgencias</button>
             <button className={tab === 'res' ? 'on' : ''} onClick={() => setTab('res')}>Residuos</button>
+            <button className={tab === 'urb' ? 'on' : ''} onClick={() => goTab('urb')}>Urbanismo</button>
             <button className={tab === 'ruta' ? 'on' : ''} onClick={() => setTab('ruta')}>Ruta</button>
             <button className={tab === 'historico' ? 'on' : ''} onClick={() => setTab('historico')}>Histórico</button>
           </nav>
@@ -179,6 +189,7 @@ export default function App() {
           {tab === 'alertas' && <AlertsPanel live={live} onFocus={onFocus} />}
           {tab === 'urg' && <EmergencyPanel em={emergency} onFocus={onFocus} />}
           {tab === 'res' && <ResidusPanel res={residus} fraccio={resFraccio} setFraccio={setResFraccio} onFocus={onFocus} />}
+          {tab === 'urb' && <UrbanismePanel urb={urbanisme} enabled={layers.urb} onEnable={showUrb} onFocus={onFocus} />}
           {tab === 'ruta' && <RoutePanel sel={sel} setSel={setSel} route={route} live={live} />}
           {tab === 'historico' && <Panel data={data} hour={hour} onPick={setHour} />}
         </aside>

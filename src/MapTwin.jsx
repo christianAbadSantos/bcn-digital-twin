@@ -6,6 +6,7 @@ import { createMetroLayer } from './metroLayer.js'
 import { createTreesLayer } from './treesLayer.js'
 import { DEM_SOURCES, IMAGERY } from './tileMath.js'
 import { REPORT_TYPES } from '../shared/reportsConfig.js'
+import { GRUPS } from './urbanisme.js'
 
 // Mapa libre: teselas vectoriales de OpenStreetMap servidas por OpenFreeMap (sin clave).
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty'
@@ -32,6 +33,7 @@ const GROUPS = {
   alerts: ['alerts-ring'],
   rain: ['radar'],
   port: ['port-fill', 'port-line'],
+  urb: ['urb-fill', 'urb-line', 'urb-sel', 'cat-parcel', 'bld-sel'],
 }
 
 
@@ -81,11 +83,17 @@ function accidentsGeo(accidents, from, to) {
 const BAY_COLOR = ['match', ['get', 'state'], 'ocupada', '#d03b3b', 'reservada', '#fab219', '#0ca30c']
 const hhmm = (ms) => (ms ? new Date(ms).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—')
 
+// urbanismo: color de cada grupo de calificación y límites de parcela del Catastro (WMS, permite CORS)
+const URB_COLOR = ['match', ['get', 'g'], ...GRUPS.flatMap((g) => [g.k, g.color]), '#c3c9d3']
+const CATASTRO_WMS = 'https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=Catastro&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256'
+// capas con su propio clic: si el clic cae en una de ellas no se abre la ficha de urbanismo
+const CLICKABLE = ['fiware-dot', 'rodalies-dot', 'reports-dot', 'res-dot', 'pcritic', 'pverd', 'res-base', 'hosp-dot', 'amb-dot', 'v16-dot', 'bays-fill', 'zones-circle']
+
 const FILL_COLOR = ['step', ['get', 'n'], '#0ca30c', 50, '#fab219', 80, '#ec835a', 100, '#d03b3b']
 const FRACCIO_ES = { Rebuig: 'Resto', Envasos: 'Envases', Paper: 'Papel y cartón', Vidre: 'Vidrio', Organica: 'Orgánica' }
 const FRACCIO_TINT = { Rebuig: '#6b7280', Envasos: '#e2b100', Paper: '#2a78d6', Vidre: '#0ca30c', Organica: '#8a5a2b' }
 
-export default function MapTwin({ data, hour, layers, live, emergency, residus, resFraccio = 'all', focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
+export default function MapTwin({ data, hour, layers, live, emergency, residus, resFraccio = 'all', urbanisme, onUrbPick, focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
   const box = useRef(null)
   const mapRef = useRef(null)
   const liveRef = useRef(live)
@@ -101,6 +109,8 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
   const metroRef = useRef(null)
   const pickRef = useRef(null)
   pickRef.current = picking ? onPick : null
+  const urbPickRef = useRef(null)
+  urbPickRef.current = onUrbPick
 
   // ---- crear el mapa una vez
   useEffect(() => {
@@ -143,6 +153,29 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
           },
         })
       }
+
+      // ---- urbanismo: calificación del suelo (debajo de los edificios), parcelas del Catastro y edificio elegido
+      const below = map.getLayer('bld3d') ? 'bld3d' : undefined
+      map.addSource('urb', { type: 'geojson', data: EMPTY, generateId: true, attribution: 'Calificación: Mapa Urbanístic de Catalunya (Generalitat)' })
+      map.addLayer({ id: 'urb-fill', type: 'fill', source: 'urb', layout: { visibility: 'none' }, paint: { 'fill-color': URB_COLOR, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0.6, 16, 0.5] } }, below)
+      map.addLayer({ id: 'urb-line', type: 'line', source: 'urb', minzoom: 14, layout: { visibility: 'none' }, paint: { 'line-color': '#ffffff', 'line-width': 0.8, 'line-opacity': 0.8 } }, below)
+      map.addSource('cat-parcel', { type: 'raster', tiles: [CATASTRO_WMS], tileSize: 256, minzoom: 16, attribution: 'Parcelas: Dirección General del Catastro' })
+      map.addLayer({ id: 'cat-parcel', type: 'raster', source: 'cat-parcel', minzoom: 16, layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.55 } }, below)
+      map.addSource('urb-sel', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'urb-sel', type: 'line', source: 'urb-sel', layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': '#101828', 'line-width': 2.5, 'line-dasharray': [2, 1] } }, below)
+      map.addSource('bld-sel', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'bld-sel', type: 'fill-extrusion', source: 'bld-sel', layout: { visibility: 'none' }, paint: { 'fill-extrusion-color': '#6250d6', 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 0.9 } })
+      map.on('click', (e) => {
+        if (pickRef.current || !layersRef.current.urb || !urbPickRef.current) return
+        const p = e.point
+        if (map.queryRenderedFeatures(p, { layers: CLICKABLE.filter((id) => map.getLayer(id)) }).length) return
+        const z = map.queryRenderedFeatures(p, { layers: ['urb-fill'] })[0]
+        const b = map.getLayer('bld3d') && layersRef.current.bld3d ? map.queryRenderedFeatures(p, { layers: ['bld3d'] })[0] : null
+        urbPickRef.current({
+          lon: e.lngLat.lng, lat: e.lngLat.lat, idx: z ? z.id : null,
+          bld: b ? { geometry: b.geometry, h: b.properties.render_height ?? 8, b: b.properties.render_min_height ?? 0 } : null,
+        })
+      })
 
       // metro: líneas + estaciones
       map.addSource('metro', {
@@ -487,6 +520,32 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
     map.getSource('route')?.setData({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [a, b] } }, pt(a[0], a[1]), pt(b[0], b[1])] })
   }, [ready, route])
 
+  // ---- urbanismo: datos, filtro por grupos y selección
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !urbanisme?.geo) return
+    map.getSource('urb')?.setData(urbanisme.geo)
+  }, [ready, urbanisme?.geo])
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !urbanisme) return
+    const ks = GRUPS.filter((g) => urbanisme.on[g.k]).map((g) => g.k)
+    for (const id of ['urb-fill', 'urb-line']) map.getLayer(id) && map.setFilter(id, ['in', ['get', 'g'], ['literal', ks]])
+  }, [ready, urbanisme?.on])
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map) return
+    const s = urbanisme?.sel
+    map.getSource('urb-sel')?.setData(s?.zona?.geometry ? { type: 'Feature', properties: {}, geometry: s.zona.geometry } : EMPTY)
+    map.getSource('bld-sel')?.setData(s?.bld ? { type: 'Feature', properties: { h: s.bld.h, b: s.bld.b }, geometry: s.bld.geometry } : EMPTY)
+  }, [ready, urbanisme?.sel])
+  // con urbanismo encendido los edificios se vuelven translúcidos para ver el color del suelo
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !map.getLayer('bld3d')) return
+    map.setPaintProperty('bld3d', 'fill-extrusion-opacity', layers.urb ? 0.45 : 0.95)
+  }, [ready, layers.urb])
+
   // ---- volar a una alerta
   useEffect(() => {
     const map = mapRef.current
@@ -561,6 +620,7 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
             FIWARE: {live.fiware.status === 'ok' ? `${live.fiware.n} entidades${live.fiware.demo ? ' (MUESTRA, valores inventados)' : ' en tiempo real'}` : 'sin broker configurado (ver README o ?fiware=demo)'}
           </div>
         )}
+        {layers.urb && <div className="muted">Urbanismo: calificación real del suelo (Mapa Urbanístic de Catalunya, Generalitat) · fichas de parcela del Catastro en directo{urbanisme?.err ? ` · ${urbanisme.err}` : ''}</div>}
         {msg && <div className="err">{msg}</div>}
       </div>
     </div>

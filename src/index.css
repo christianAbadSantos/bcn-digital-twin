@@ -608,3 +608,30 @@ input[type=range] { accent-color: var(--acc); }
 .res-plan select { margin-left: 4px; }
 .res-ruta { margin-top: 8px; }
 .res-viatge { font-size: 11.5px; padding: 4px 0; border-top: 1px solid var(--line); }
+
+/* ---- urbanismo */
+.urb-fitxa { border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 8px 0 12px; background: #fff; }
+.urb-fitxa-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; font-size: 13px; }
+.sheet-x2 { background: transparent; border: 0; color: var(--mut); cursor: pointer; font-size: 14px; padding: 0 2px; }
+.urb-zona { border-left: 4px solid; padding: 6px 8px; margin: 8px 0; background: var(--inset); border-radius: 0 6px 6px 0; font-size: 12.5px; }
+.urb-zona div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.urb-zona p { margin: 4px 0; color: var(--txt); font-size: 12px; line-height: 1.4; }
+.urb-clau { font-size: 10.5px; font-weight: 600; background: #101828; color: #fff; border-radius: 4px; padding: 1px 6px; }
+.urb-kpis b { font-size: 14px; overflow-wrap: anywhere; }
+.urb-t td:first-child { color: var(--mut); white-space: nowrap; padding-right: 8px; vertical-align: top; }
+.urb-t td { font-size: 11.5px; }
+.urb-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.urb-actions a.btn { text-decoration: none; }
+.urb-legend { display: flex; flex-direction: column; gap: 2px; }
+.urb-lg { display: flex; align-items: center; gap: 8px; background: transparent; border: 0; padding: 4px 4px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12.5px; color: var(--mut); text-align: left; }
+.urb-lg:hover { background: var(--inset); }
+.urb-lg i { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; opacity: 0.35; }
+.urb-lg.on { color: var(--txt); }
+.urb-lg.on i { opacity: 1; }
+.urb-lg span { flex: 1; }
+.urb-lg small { color: var(--mut); font-variant-numeric: tabular-nums; }
+.urb .small { font-size: 11.5px; }
+/* 7 pestañas en 340 px: se reparten el ancho sin desbordar el panel */
+.panel { overflow-x: hidden; }
+.ptabs button { flex: 1 1 auto; min-width: 0; padding: 10px 2px; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.urb-kpis .urb-us b { font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
