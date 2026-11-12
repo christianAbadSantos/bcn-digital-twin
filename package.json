@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "trees": "node scripts/build-trees.mjs"
+    "trees": "node scripts/build-trees.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@clerk/localizations": "^4.24.6",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vitest": "^2.1.9"
   }
 }

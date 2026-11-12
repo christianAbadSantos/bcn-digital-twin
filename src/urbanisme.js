@@ -71,6 +71,28 @@ export function areaDe(g) {
   return g.type === 'Polygon' ? areaPoly(g.coordinates) : g.type === 'MultiPolygon' ? g.coordinates.reduce((s, p) => s + areaPoly(p), 0) : 0
 }
 
+// Ámbito de calificación que contiene un punto (el viario solo si no hay otro)
+function inRing(p, r) {
+  let ok = false
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const [xi, yi] = r[i], [xj, yj] = r[j]
+    if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) ok = !ok
+  }
+  return ok
+}
+const inPoly = (p, poly) => inRing(p, poly[0]) && !poly.slice(1).some((h) => inRing(p, h))
+export function zonaEn(geo, p) {
+  let infra = null
+  for (const f of geo?.features || []) {
+    const g = f.geometry
+    const hit = g.type === 'Polygon' ? inPoly(p, g.coordinates) : g.coordinates.some((c) => inPoly(p, c))
+    if (!hit) continue
+    if (f.properties.g !== 'infra') return f
+    infra = infra || f
+  }
+  return infra
+}
+
 // ---- Catastro
 const SOTANO = /^(-\d+|S\d*|SS|ST|SM|SO)$/i
 const BAJA = /^(0+|BJ|PB|BA|LO|LC)$/i
@@ -189,7 +211,8 @@ export function useUrbanisme(enabled) {
     ctl.current?.abort()
     const c = new AbortController()
     ctl.current = c
-    const gf = idx != null ? geoRef.current?.features[idx] : null
+    // si el mapa aún no ha dibujado la capa en ese punto, se busca el ámbito en los datos
+    const gf = idx != null ? geoRef.current?.features[idx] : zonaEn(geoRef.current, [lon, lat])
     const zona = gf ? { ...gf.properties, m2: areaDe(gf.geometry), geometry: gf.geometry } : null
     setSel({ lon, lat, zona, bld: bld || null, alturaOsm: bld ? Math.round(bld.h) : null, fitxa: null, estat: 'carregant' })
     try {

@@ -1,0 +1,38 @@
+# Revisión automática en cada push y pull request:
+#   - web: tests de la lógica (Vitest) y compilación de producción (Vite)
+#   - api: compilación y tests (xUnit) de la API .NET de residuos
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  web:
+    name: Web (React + Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  api:
+    name: API .NET (residuos)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fcc-residus-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore Residus.slnx
+      - run: dotnet build Residus.slnx --no-restore -c Release
+      - run: dotnet test Residus.slnx --no-build -c Release --logger "console;verbosity=normal"
