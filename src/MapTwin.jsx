@@ -87,6 +87,20 @@ const hhmm = (ms) => (ms ? new Date(ms).toLocaleTimeString('es-ES', { hour: '2-d
 const URB_COLOR = ['match', ['get', 'g'], ...GRUPS.flatMap((g) => [g.k, g.color]), '#c3c9d3']
 const CATASTRO_WMS = 'https://ovc.catastro.meh.es/Cartografia/WMS/ServidorWMS.aspx?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=Catastro&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256'
 // capas con su propio clic: si el clic cae en una de ellas no se abre la ficha de urbanismo
+// las teselas de OpenFreeMap agrupan muchos edificios en un MultiPolygon: nos quedamos con el que contiene el clic
+function inRing(pt, ring) {
+  let ok = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j]
+    if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) ok = !ok
+  }
+  return ok
+}
+function polyAt(g, pt) {
+  if (!g || g.type !== 'MultiPolygon') return g
+  const c = g.coordinates.find((p) => inRing(pt, p[0]))
+  return c ? { type: 'Polygon', coordinates: c } : null
+}
 const CLICKABLE = ['fiware-dot', 'rodalies-dot', 'reports-dot', 'res-dot', 'pcritic', 'pverd', 'res-base', 'hosp-dot', 'amb-dot', 'v16-dot', 'bays-fill', 'zones-circle']
 
 const FILL_COLOR = ['step', ['get', 'n'], '#0ca30c', 50, '#fab219', 80, '#ec835a', 100, '#d03b3b']
@@ -170,11 +184,17 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
         const p = e.point
         if (map.queryRenderedFeatures(p, { layers: CLICKABLE.filter((id) => map.getLayer(id)) }).length) return
         const z = map.queryRenderedFeatures(p, { layers: ['urb-fill'] })[0]
-        const b = map.getLayer('bld3d') && layersRef.current.bld3d ? map.queryRenderedFeatures(p, { layers: ['bld3d'] })[0] : null
-        urbPickRef.current({
-          lon: e.lngLat.lng, lat: e.lngLat.lat, idx: z ? z.id : null,
-          bld: b ? { geometry: b.geometry, h: b.properties.render_height ?? 8, b: b.properties.render_min_height ?? 0 } : null,
-        })
+        // edificio cuya huella contiene el punto del suelo bajo el clic (en 3D, el primero que toca el
+        // rayo puede ser la fachada de otro edificio); si el clic cae en un patio o en la calle, ninguno
+        const ll = [e.lngLat.lng, e.lngLat.lat]
+        let bld = null
+        if (map.getLayer('bld3d') && layersRef.current.bld3d) {
+          for (const f of map.queryRenderedFeatures([[p.x - 60, p.y - 60], [p.x + 60, p.y + 60]], { layers: ['bld3d'] })) {
+            const g = f.geometry.type === 'Polygon' ? (inRing(ll, f.geometry.coordinates[0]) ? f.geometry : null) : polyAt(f.geometry, ll)
+            if (g) { bld = { geometry: g, h: f.properties.render_height ?? 8, b: f.properties.render_min_height ?? 0 }; break }
+          }
+        }
+        urbPickRef.current({ lon: ll[0], lat: ll[1], idx: z ? z.id : null, bld })
       })
 
       // metro: líneas + estaciones
