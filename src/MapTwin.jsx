@@ -7,6 +7,7 @@ import { createTreesLayer } from './treesLayer.js'
 import { DEM_SOURCES, IMAGERY } from './tileMath.js'
 import { REPORT_TYPES } from '../shared/reportsConfig.js'
 import { GRUPS } from './urbanisme.js'
+import { DEPOSITS, ESTAT_COLOR } from './agua.jsx'
 
 // Mapa libre: teselas vectoriales de OpenStreetMap servidas por OpenFreeMap (sin clave).
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty'
@@ -34,6 +35,7 @@ const GROUPS = {
   rain: ['radar'],
   port: ['port-fill', 'port-line'],
   urb: ['urb-fill', 'urb-line', 'urb-sel', 'cat-parcel', 'bld-sel'],
+  agua: ['agua-fill', 'agua-line', 'agua-sel', 'agua-dep-halo', 'agua-dep', 'agua-dep-lbl'],
 }
 
 
@@ -107,7 +109,7 @@ const FILL_COLOR = ['step', ['get', 'n'], '#0ca30c', 50, '#fab219', 80, '#ec835a
 const FRACCIO_ES = { Rebuig: 'Resto', Envasos: 'Envases', Paper: 'Papel y cartón', Vidre: 'Vidrio', Organica: 'Orgánica' }
 const FRACCIO_TINT = { Rebuig: '#6b7280', Envasos: '#e2b100', Paper: '#2a78d6', Vidre: '#0ca30c', Organica: '#8a5a2b' }
 
-export default function MapTwin({ data, hour, layers, live, emergency, residus, resFraccio = 'all', urbanisme, onUrbPick, focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
+export default function MapTwin({ data, hour, layers, live, emergency, residus, resFraccio = 'all', urbanisme, onUrbPick, agua, onAguaPick, focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
   const box = useRef(null)
   const mapRef = useRef(null)
   const liveRef = useRef(live)
@@ -125,6 +127,8 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
   pickRef.current = picking ? onPick : null
   const urbPickRef = useRef(null)
   urbPickRef.current = onUrbPick
+  const aguaPickRef = useRef(null)
+  aguaPickRef.current = onAguaPick
 
   // ---- crear el mapa una vez
   useEffect(() => {
@@ -196,6 +200,17 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
         }
         urbPickRef.current({ lon: ll[0], lat: ll[1], idx: z ? z.id : null, bld })
       })
+
+      // ---- agua y lluvia: distritos coloreados por el uso de la red y depósitos anti-inundación
+      map.addSource('agua', { type: 'geojson', data: EMPTY, attribution: 'Distritos: Open Data BCN' })
+      map.addLayer({ id: 'agua-fill', type: 'fill', source: 'agua', layout: { visibility: 'none' }, paint: { 'fill-color': ['interpolate', ['linear'], ['get', 'us'], 0, '#7cc58a', 0.8, ESTAT_COLOR.alt, 1, ESTAT_COLOR.ple, 1.6, ESTAT_COLOR.inunda, 2.4, '#7a1515'], 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 11, 0.42, 15, 0.22] } }, below)
+      map.addLayer({ id: 'agua-line', type: 'line', source: 'agua', layout: { visibility: 'none' }, paint: { 'line-color': '#ffffff', 'line-width': 1.5, 'line-opacity': 0.9 } }, below)
+      map.addLayer({ id: 'agua-sel', type: 'line', source: 'agua', filter: ['==', ['get', 'codi'], ''], layout: { visibility: 'none', 'line-join': 'round' }, paint: { 'line-color': '#101828', 'line-width': 3, 'line-dasharray': [2, 1] } })
+      map.addSource('agua-dep', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'agua-dep-halo', type: 'circle', source: 'agua-dep', layout: { visibility: 'none' }, paint: { 'circle-radius': ['+', ['get', 'r'], 10], 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': ['case', ['>=', ['get', 'fill'], 1], '#d03b3b', '#2a78d6'], 'circle-stroke-width': ['case', ['>=', ['get', 'fill'], 1], 4, 0], 'circle-stroke-opacity': 0.85 } })
+      map.addLayer({ id: 'agua-dep', type: 'circle', source: 'agua-dep', layout: { visibility: 'none' }, paint: { 'circle-radius': ['get', 'r'], 'circle-color': ['interpolate', ['linear'], ['get', 'fill'], 0, '#bfe0f7', 0.7, '#4fa3e0', 1, '#d03b3b'], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 } })
+      map.addLayer({ id: 'agua-dep-lbl', type: 'symbol', source: 'agua-dep', layout: { visibility: 'none', 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0, 1.6], 'text-anchor': 'top', 'text-font': ['Noto Sans Bold'], 'text-max-width': 14 }, paint: { 'text-color': '#184f95', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 } })
+      map.on('click', 'agua-fill', (e) => { if (!pickRef.current && e.features[0]) aguaPickRef.current?.(e.features[0].properties.codi) })
 
       // metro: líneas + estaciones
       map.addSource('metro', {
@@ -566,6 +581,22 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
     map.setPaintProperty('bld3d', 'fill-extrusion-opacity', layers.urb ? 0.45 : 0.95)
   }, [ready, layers.urb])
 
+  // ---- agua y lluvia
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !agua?.geo || !agua.r) return
+    const by = Object.fromEntries(agua.r.districtes.map((d) => [d.codi, d]))
+    map.getSource('agua')?.setData({ type: 'FeatureCollection', features: agua.geo.features.map((f) => ({ ...f, properties: { ...f.properties, estat: by[f.properties.codi]?.estat || 'ok', us: by[f.properties.codi]?.us || 0 } })) })
+    const fill = agua.r.total.ompliment
+    const pct = Math.round(fill * 100)
+    map.getSource('agua-dep')?.setData({ type: 'FeatureCollection', features: DEPOSITS.map((d) => pt(d.lon, d.lat, { r: 6 + Math.sqrt(d.m3 / 1000) * 1.2, fill, label: `Depósito ${d.nom} · ${(d.m3 / 1000).toLocaleString('es-ES')} mil m³${fill >= 1 ? ' · DESBORDANDO' : ` · ${pct} %`}` })) })
+  }, [ready, agua?.geo, agua?.r])
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !map.getLayer('agua-sel')) return
+    map.setFilter('agua-sel', ['==', ['get', 'codi'], agua?.sel || ''])
+  }, [ready, agua?.sel])
+
   // ---- volar a una alerta
   useEffect(() => {
     const map = mapRef.current
@@ -615,6 +646,7 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={box} style={{ position: 'absolute', inset: 0 }} />
       <div ref={labelsBox} className="train-pins" />
+      {layers.agua && agua?.r && agua.r.mmh > 0 && <div className="rain-fx" style={{ '--rain': Math.min(1, 0.25 + agua.r.mmh / 120) }} aria-hidden="true" />}
       <div className="badge">
         Mapa: OpenStreetMap vía OpenFreeMap · Relieve: ICGC 5 m{layers.sat ? ' · Ortofoto: ICGC' : ''} · Radar: RainViewer · Accidentes: reales 2024 (Guàrdia Urbana) · Tráfico, metro y puerto: simulados
         {layers.tiles3d && credits && <div className="muted">Teselas 3D: {credits}</div>}
@@ -640,6 +672,7 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
             FIWARE: {live.fiware.status === 'ok' ? `${live.fiware.n} entidades${live.fiware.demo ? ' (MUESTRA, valores inventados)' : ' en tiempo real'}` : 'sin broker configurado (ver README o ?fiware=demo)'}
           </div>
         )}
+        {layers.agua && <div className="muted">Agua y lluvia: distritos y suelo reales · uso de la red y depósitos según un modelo didáctico (método racional){agua?.err ? ` · ${agua.err}` : ''}</div>}
         {layers.urb && <div className="muted">Urbanismo: calificación real del suelo (Mapa Urbanístic de Catalunya, Generalitat) · fichas de parcela del Catastro en directo{urbanisme?.err ? ` · ${urbanisme.err}` : ''}</div>}
         {msg && <div className="err">{msg}</div>}
       </div>

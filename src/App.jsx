@@ -19,6 +19,8 @@ import { useResidus } from './useResidus.js'
 import ResidusPanel from './ResidusPanel.jsx'
 import { useUrbanisme } from './urbanisme.js'
 import UrbanismePanel from './UrbanismePanel.jsx'
+import FloatPanel from './FloatPanel.jsx'
+import AguaPanel, { useAgua, AguaLluvia, AguaBalance, AguaCausa, AguaCorte, AguaEscenaris } from './agua.jsx'
 
 // Cada vista se carga bajo demanda (maplibre y three pesan bastante)
 const MapTwin = lazy(() => import('./MapTwin.jsx'))
@@ -39,6 +41,7 @@ const CHIPS = {
   reports: 'Reportes',
   res: 'Residuos',
   urb: 'Urbanismo',
+  agua: 'Agua y lluvia',
   urg: 'Urgencias',
   v16: 'Balizas V16 (real)',
   metro: 'Metro 3D',
@@ -50,6 +53,8 @@ const CHIPS = {
   rain: 'Radar lluvia',
   port: 'Puerto',
 }
+const AGUA_PANELS = { lluvia: 'Lluvia', balance: 'Balance de caudales', causa: 'Causa → efecto', corte: 'Corte A–A' }
+const TAB_NOM = { fuentes: 'Fuentes', alertas: 'Alertas', urg: 'Urgencias', res: 'Residuos', urb: 'Urbanismo', agua: 'Agua y lluvia', ruta: 'Ruta', historico: 'Histórico' }
 const SCENE_CHIPS = ['labels', 'metro', 'port', 'rain', 'accidents', 'fiware']
 
 export default function App() {
@@ -74,8 +79,33 @@ export default function App() {
   const [focus, setFocus] = useState(null)
   const [sheet, setSheet] = useState(false) // panel inferior en móvil
   const [sel, setSel] = useState({ from: 'aeroport', to: 'catalunya' })
-  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, reports: true, res: true, urg: true, v16: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true, urb: false })
+  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, reports: true, res: true, urg: true, v16: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true, urb: false, agua: false })
   const urbanisme = useUrbanisme(layers.urb)
+  const agua = useAgua(layers.agua, liveRaw?.weather?.rain ?? 0)
+
+  // ---- paneles flotantes y modos de pantalla (estilo centro de control)
+  const [fp, setFp] = useState({}) // paneles abiertos: { lluvia: true, 'tab:res': true, ... }
+  const [zs, setZs] = useState([]) // orden de apilado
+  const [present, setPresent] = useState(false)
+  const [side, setSide] = useState(true)
+  const front = (k) => setZs((z) => [...z.filter((x) => x !== k), k])
+  const openFp = (k) => { setFp((f) => ({ ...f, [k]: true })); front(k) }
+  const closeFp = (k) => setFp((f) => ({ ...f, [k]: false }))
+  const toggleFp = (k) => (fp[k] ? closeFp(k) : openFp(k))
+  const zOf = (k) => zs.indexOf(k) + 1
+  useEffect(() => {
+    if (!layers.agua) return
+    setFp((f) => (Object.keys(AGUA_PANELS).some((k) => f[k] !== undefined) ? f : { ...f, lluvia: true, causa: true, balance: true }))
+  }, [layers.agua])
+  const fullscreen = () => {
+    const r = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.()
+    r?.catch?.(() => {})
+  }
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape') setPresent(false) }
+    addEventListener('keydown', k)
+    return () => removeEventListener('keydown', k)
+  }, [])
 
   const ok = Boolean(data && !data.error)
   const [clock, setClock] = useState(() => new Date())
@@ -104,7 +134,19 @@ export default function App() {
   const goTab = (t) => {
     setTab(t)
     if (t === 'urb') showUrb()
+    if (t === 'agua') setLayers((l) => ({ ...l, agua: true }))
   }
+  const renderTab = (t) => (
+    t === 'fuentes' ? <SourcesPanel live={live} mode={mode} hist={hist} paused={paused} onResume={resume} />
+    : t === 'alertas' ? <AlertsPanel live={live} onFocus={onFocus} />
+    : t === 'urg' ? <EmergencyPanel em={emergency} onFocus={onFocus} />
+    : t === 'res' ? <ResidusPanel res={residus} fraccio={resFraccio} setFraccio={setResFraccio} onFocus={onFocus} />
+    : t === 'urb' ? <UrbanismePanel urb={urbanisme} enabled={layers.urb} onEnable={showUrb} onFocus={onFocus} />
+    : t === 'agua' ? <AguaPanel agua={agua} open={fp} onOpen={toggleFp} enabled={layers.agua} onEnable={() => setLayers((l) => ({ ...l, agua: true }))} />
+    : t === 'ruta' ? <RoutePanel sel={sel} setSel={setSel} route={route} live={live} />
+    : t === 'historico' ? <Panel data={data} hour={hour} onPick={setHour} />
+    : null
+  )
   const chips = view === 'map' ? Object.keys(CHIPS).filter((k) => k !== 'labels' && (k !== 'tiles3d' || HAS_TILES3D)) : SCENE_CHIPS
   const showTimeline = view === 'scene' || (view === 'map' && tab === 'historico')
   const crit = live ? live.alerts.filter((a) => a.sev === 'crit').length : 0
@@ -120,7 +162,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${present ? 'present' : ''} ${side ? '' : 'noside'}`}>
       <header className="top">
         <div className="brand"><span className="logo" />Digital Twin<small>Barcelona</small></div>
         <nav className="nav">
@@ -163,12 +205,39 @@ export default function App() {
           ) : (
             <Suspense fallback={<div className="gate"><div className="card">Cargando vista…</div></div>}>
               {view === 'map' ? (
-                <MapTwin data={data} hour={hour} layers={layers} live={live} emergency={emergency} residus={layers.res ? residus : null} resFraccio={resFraccio} urbanisme={urbanisme} onUrbPick={(p) => { urbanisme.tria(p); setTab('urb') }} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} googleKey={GOOGLE_KEY} tier={TIER.key}
+                <MapTwin data={data} hour={hour} layers={layers} live={live} emergency={emergency} residus={layers.res ? residus : null} resFraccio={resFraccio} urbanisme={urbanisme} onUrbPick={(p) => { urbanisme.tria(p); setTab('urb') }} agua={layers.agua ? agua : null} onAguaPick={(c) => { agua.setSel(c); if (!layers.urb) setTab('agua') }} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} googleKey={GOOGLE_KEY} tier={TIER.key}
                   picking={picking} onPick={(p) => { setPicking(false); setReportPoint(p) }} />
               ) : (
                 <ThreeTwin data={data} hour={hour} layers={layers} live={live} />
               )}
             </Suspense>
+          )}
+          {view === 'map' && ok && (
+            <>
+              {layers.agua && agua.r && <AguaEscenaris agua={agua} />}
+              <nav className="dock" aria-label="Paneles">
+                <button className={Object.values(fp).some(Boolean) ? 'on' : ''} onClick={() => (Object.values(fp).some(Boolean) ? setFp({}) : layers.agua ? setFp({ lluvia: true, causa: true, balance: true }) : goTab('agua'))}>▤ Paneles</button>
+                <button onClick={fullscreen}>⛶ Pantalla completa</button>
+                <button className={present ? 'on' : ''} onClick={() => setPresent((v) => !v)}>▶ Presentación</button>
+                <button className={side ? 'on' : ''} onClick={() => setSide((v) => !v)}>◧ Panel lateral</button>
+                {layers.agua && Object.entries(AGUA_PANELS).map(([k, t]) => <button key={k} className={`sub ${fp[k] ? 'on' : ''}`} onClick={() => toggleFp(k)}>{t}</button>)}
+                <button onClick={() => { setLayers((l) => ({ ...l, agua: true })); setFp({ lluvia: true, causa: true, balance: true, corte: true }) }}>✓ Mostrar todo</button>
+                <button onClick={() => setFp({})}>✕ Ocultar todo</button>
+              </nav>
+              {layers.agua && agua.r && <>
+                {fp.lluvia && <FloatPanel id="lluvia" title="Intensidad de la lluvia" sub={`${Math.round(agua.r.mmh)} mm/h`} def={{ x: 12, y: 96, w: 300, h: 300 }} z={zOf('lluvia')} onFocus={() => front('lluvia')} onClose={() => closeFp('lluvia')}><AguaLluvia agua={agua} /></FloatPanel>}
+                {fp.balance && <FloatPanel id="balance" title="Balance de caudales" sub={`red ${Math.round(agua.r.total.us * 100)} %`} def={{ x: 324, y: 96, w: 360, h: 330 }} z={zOf('balance')} onFocus={() => front('balance')} onClose={() => closeFp('balance')}><AguaBalance agua={agua} /></FloatPanel>}
+                {fp.causa && <FloatPanel id="causa" title="Causa → efecto · en vivo" def={{ x: 12, y: 408, w: 560, h: 290 }} z={zOf('causa')} onFocus={() => front('causa')} onClose={() => closeFp('causa')}><AguaCausa agua={agua} /></FloatPanel>}
+                {fp.corte && <FloatPanel id="corte" title="Corte A–A · calle tipo" def={{ x: 696, y: 96, w: 440, h: 380 }} z={zOf('corte')} onFocus={() => front('corte')} onClose={() => closeFp('corte')}><AguaCorte agua={agua} /></FloatPanel>}
+              </>}
+              {Object.keys(TAB_NOM).filter((t) => fp['tab:' + t]).map((t, i) => (
+                <FloatPanel key={t} id={'tab:' + t} title={TAB_NOM[t]} def={{ x: 60 + i * 30, y: 120 + i * 30, w: 360, h: 460 }} z={zOf('tab:' + t)} onFocus={() => front('tab:' + t)} onClose={() => closeFp('tab:' + t)}
+                  actions={<button type="button" title="Volver al panel lateral" aria-label="Volver al panel lateral" onClick={() => { closeFp('tab:' + t); setSide(true); setTab(t) }}>⇥</button>}>
+                  <div className="fp-tab">{renderTab(t)}</div>
+                </FloatPanel>
+              ))}
+              {present && <button className="present-x" onClick={() => setPresent(false)}>Salir de la presentación (Esc)</button>}
+            </>
           )}
         </div>
 
@@ -182,16 +251,12 @@ export default function App() {
             <button className={tab === 'urg' ? 'on' : ''} onClick={() => setTab('urg')}>Urgencias</button>
             <button className={tab === 'res' ? 'on' : ''} onClick={() => setTab('res')}>Residuos</button>
             <button className={tab === 'urb' ? 'on' : ''} onClick={() => goTab('urb')}>Urbanismo</button>
+            <button className={tab === 'agua' ? 'on' : ''} onClick={() => goTab('agua')}>Agua</button>
             <button className={tab === 'ruta' ? 'on' : ''} onClick={() => setTab('ruta')}>Ruta</button>
             <button className={tab === 'historico' ? 'on' : ''} onClick={() => setTab('historico')}>Histórico</button>
           </nav>
-          {tab === 'fuentes' && <SourcesPanel live={live} mode={mode} hist={hist} paused={paused} onResume={resume} />}
-          {tab === 'alertas' && <AlertsPanel live={live} onFocus={onFocus} />}
-          {tab === 'urg' && <EmergencyPanel em={emergency} onFocus={onFocus} />}
-          {tab === 'res' && <ResidusPanel res={residus} fraccio={resFraccio} setFraccio={setResFraccio} onFocus={onFocus} />}
-          {tab === 'urb' && <UrbanismePanel urb={urbanisme} enabled={layers.urb} onEnable={showUrb} onFocus={onFocus} />}
-          {tab === 'ruta' && <RoutePanel sel={sel} setSel={setSel} route={route} live={live} />}
-          {tab === 'historico' && <Panel data={data} hour={hour} onPick={setHour} />}
+          {view === 'map' && <button className="undock" onClick={() => { openFp('tab:' + tab); setSide(false) }} title="Abrir esta pestaña como panel flotante sobre el mapa">⧉ Sacar como panel flotante</button>}
+          {fp['tab:' + tab] ? <div className="calm">Esta pestaña está abierta como panel flotante sobre el mapa.</div> : renderTab(tab)}
         </aside>
       </div>
 
