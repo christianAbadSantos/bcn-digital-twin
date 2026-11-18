@@ -14,6 +14,7 @@ Un modelo 3D de Barcelona que junta en un solo mapa datos reales y en vivo de la
 | --- | --- | --- |
 | **Urbanismo** | Colorea cada manzana según lo que se puede construir y, al hacer clic en un edificio, enseña su ficha: año, plantas, uso, superficies, edificabilidad y clave urbanística | Mapa Urbanístic de Catalunya (Generalitat) · Catastro, en directo |
 | **Urgencias** | Ambulancias con GPS LoRaWAN, ETA según tráfico y balizas V16, y asignación de bahía en el muelle del hospital leída de un modelo IFC | Balizas V16 reales (DGT) · rutas reales (OSRM) · ambulancias simuladas |
+| **Flota de camiones** | Rutas de reparto optimizadas con capacidad y ventana horaria de cada cliente (inserción más barata + reubicación entre camiones + 2-opt; un 38 % menos de km de media que por orden de llegada) y seguimiento en vivo: cada camión manda su GPS por LoRaWAN (payload de 13 bytes, decodificador de The Things Stack, pasarelas con RSSI/SNR/SF, tiempo en el aire y ciclo de trabajo). Las horas de llegada cambian con el tráfico y las balizas V16; recálculo de rutas y recogidas urgentes | Distancias, tiempos y trazado reales por carretera (OSRM / OpenStreetMap) · empresa, pedidos y mensajes simulados |
 | **Residuos** | Contenedores con sensor de llenado, indicadores y planificación de la ruta de recogida (vecino más próximo + 2-opt, varios viajes según la capacidad del camión) | 7.500 contenedores reales (OSM) · Open Data BCN · **API .NET + SQL Server** |
 | **Movilidad** | Tráfico por zonas, metro 3D en movimiento, trenes de Rodalies en tiempo real, alertas que cruzan varias fuentes y recomendador de rutas | Rodalies real (Renfe GTFS-RT) · tiempo y radar reales · tráfico simulado |
 | **Accidentes** | 7.536 accidentes de 2024 cruzados con la lluvia de cada hora (razón de tasas ajustada, IC 95 %) | Guàrdia Urbana (Open Data BCN) · Open-Meteo |
@@ -54,7 +55,7 @@ Un modelo 3D de Barcelona que junta en un solo mapa datos reales y en vivo de la
 
 ## Qué es real y qué es simulado
 
-Todo lo que se puede es real: mapa, edificios, relieve, calificación urbanística, Catastro, accidentes, lluvia, trenes de Rodalies, balizas V16 y posición de los contenedores. Lo simulado está marcado en la propia web: los sensores de tráfico y de llenado, las ambulancias y el metro. La tabla completa está en la [guía técnica](docs/GUIA-TECNICA.md#qué-es-real-y-qué-es-simulado).
+Todo lo que se puede es real: mapa, edificios, relieve, calificación urbanística, Catastro, accidentes, lluvia, trenes de Rodalies, balizas V16 y posición de los contenedores. Lo simulado está marcado en la propia web: los sensores de tráfico y de llenado, las ambulancias, la flota de camiones y sus pedidos, y el metro. La tabla completa está en la [guía técnica](docs/GUIA-TECNICA.md#qué-es-real-y-qué-es-simulado).
 
 ## Arrancar en local
 

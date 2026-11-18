@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { parseV16 } from '../shared/v16.js'
 import { DWELL_MIN, V16_DELAY_MIN, assignBays, beaconsOnPath, distM, lorawanUplink, positionAt, prepareRoute, remainingPath, trafficFactor } from '../shared/emergency.js'
+import { gatewayFor } from '../shared/lorawan.js'
 import { spacePolygon, localToLonLat } from './hospitalGeo.js'
 
 const IFC_URL = '/data/hospital-clinic-urgencias.ifc'
@@ -13,28 +14,6 @@ const ROUTES_URL = '/data/ambulance-routes.json'
 const V16_POLL_MS = 60000
 const TICK_MS = 1000
 const UPLINK_S = 15 // cada ambulancia envía su posición cada 15 s (LoRaWAN, SF7–SF9)
-
-// pasarelas LoRaWAN simuladas repartidas por el área metropolitana
-const GATEWAYS = [
-  { id: 'bcn-gw-eixample', lon: 2.1615, lat: 41.3915 },
-  { id: 'bcn-gw-poblenou', lon: 2.1985, lat: 41.4035 },
-  { id: 'bcn-gw-sants', lon: 2.1375, lat: 41.3765 },
-  { id: 'bcn-gw-noubarris', lon: 2.1765, lat: 41.4385 },
-  { id: 'bdn-gw-centre', lon: 2.2445, lat: 41.4475 },
-  { id: 'prat-gw-aeroport', lon: 2.0785, lat: 41.2975 },
-  { id: 'stc-gw-centre', lon: 2.0855, lat: 41.4735 },
-  { id: 'lh-gw-granvia', lon: 2.1165, lat: 41.3595 },
-  { id: 'bcn-gw-pedralbes', lon: 2.1135, lat: 41.3875 },
-]
-function gatewayFor(pos) {
-  let best = null
-  for (const g of GATEWAYS) {
-    const d = distM(pos, [g.lon, g.lat])
-    if (!best || d < best.d) best = { ...g, d }
-  }
-  const km = best.d / 1000
-  return { id: best.id, rssi: Math.round(-70 - 22 * Math.log10(1 + km * 4)), snr: +(9 - km * 1.8).toFixed(1), sf: km < 1.5 ? 7 : km < 4 ? 8 : 9 }
-}
 
 const INITIAL = ['ruta', 'base', 'bahia', 'ruta', 'base', 'ruta', 'base', 'bahia', 'ruta', 'base']
 

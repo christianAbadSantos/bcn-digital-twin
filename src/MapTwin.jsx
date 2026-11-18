@@ -8,6 +8,8 @@ import { DEM_SOURCES, IMAGERY } from './tileMath.js'
 import { REPORT_TYPES } from '../shared/reportsConfig.js'
 import { GRUPS } from './urbanisme.js'
 import { DEPOSITS, ESTAT_COLOR } from './agua.jsx'
+import { GATEWAYS } from '../shared/lorawan.js'
+import { hhmm as hhmmMin } from '../shared/flota.js'
 
 // Mapa libre: teselas vectoriales de OpenStreetMap servidas por OpenFreeMap (sin clave).
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty'
@@ -36,6 +38,7 @@ const GROUPS = {
   port: ['port-fill', 'port-line'],
   urb: ['urb-fill', 'urb-line', 'urb-sel', 'cat-parcel', 'bld-sel'],
   agua: ['agua-fill', 'agua-line', 'agua-sel', 'agua-dep-halo', 'agua-dep', 'agua-dep-lbl'],
+  flota: ['fl-route', 'fl-link', 'fl-gw', 'fl-gw-lbl', 'fl-inc-halo', 'fl-inc', 'fl-stop', 'fl-stop-lbl', 'fl-depot', 'fl-depot-lbl', 'fl-truck', 'fl-truck-lbl'],
 }
 
 
@@ -103,13 +106,14 @@ function polyAt(g, pt) {
   const c = g.coordinates.find((p) => inRing(pt, p[0]))
   return c ? { type: 'Polygon', coordinates: c } : null
 }
-const CLICKABLE = ['fiware-dot', 'rodalies-dot', 'reports-dot', 'res-dot', 'pcritic', 'pverd', 'res-base', 'hosp-dot', 'amb-dot', 'v16-dot', 'bays-fill', 'zones-circle']
+const CLICKABLE = ['fiware-dot', 'rodalies-dot', 'reports-dot', 'res-dot', 'pcritic', 'pverd', 'res-base', 'hosp-dot', 'amb-dot', 'v16-dot', 'bays-fill', 'zones-circle', 'fl-truck', 'fl-stop', 'fl-gw', 'fl-depot']
+const FL_STOP_COLOR = ['match', ['get', 'st'], 'entregado', '#0ca30c', 'tarde', '#d03b3b', '#ffffff']
 
 const FILL_COLOR = ['step', ['get', 'n'], '#0ca30c', 50, '#fab219', 80, '#ec835a', 100, '#d03b3b']
 const FRACCIO_ES = { Rebuig: 'Resto', Envasos: 'Envases', Paper: 'Papel y cartón', Vidre: 'Vidrio', Organica: 'Orgánica' }
 const FRACCIO_TINT = { Rebuig: '#6b7280', Envasos: '#e2b100', Paper: '#2a78d6', Vidre: '#0ca30c', Organica: '#8a5a2b' }
 
-export default function MapTwin({ data, hour, layers, live, emergency, residus, resFraccio = 'all', urbanisme, onUrbPick, agua, onAguaPick, focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
+export default function MapTwin({ data, hour, layers, live, emergency, residus, resFraccio = 'all', urbanisme, onUrbPick, agua, onAguaPick, flota, onFlotaPick, focus, route, tilesUrl, googleKey, tier = 'mid', picking = false, onPick }) {
   const box = useRef(null)
   const mapRef = useRef(null)
   const liveRef = useRef(live)
@@ -129,6 +133,8 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
   urbPickRef.current = onUrbPick
   const aguaPickRef = useRef(null)
   aguaPickRef.current = onAguaPick
+  const flPickRef = useRef(null)
+  flPickRef.current = onFlotaPick
 
   // ---- crear el mapa una vez
   useEffect(() => {
@@ -347,6 +353,32 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
       pop('bays-fill', (p) => p.info)
       pop('hosp-dot', () => 'Hospital Clínic · Urgencias. Bahías leídas del IFC del muelle de ambulancias (modelo de ejemplo).')
 
+      // ---- flota de camiones: rutas pendientes, paradas, base, pasarelas LoRaWAN y camiones
+      map.addSource('fl-route', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'fl-route', type: 'line', source: 'fl-route', layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': ['get', 'color'], 'line-width': ['interpolate', ['linear'], ['zoom'], 10, ['case', ['get', 'sel'], 3.5, 2], 15, ['case', ['get', 'sel'], 7, 4.5]], 'line-opacity': ['case', ['get', 'sel'], 0.95, 0.6] } })
+      map.addSource('fl-link', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'fl-link', type: 'line', source: 'fl-link', layout: { visibility: 'none' }, paint: { 'line-color': '#6250d6', 'line-width': 1.2, 'line-dasharray': [2, 2], 'line-opacity': 0.7 } })
+      map.addSource('fl-gw', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'fl-gw', type: 'circle', source: 'fl-gw', layout: { visibility: 'none' }, paint: { 'circle-radius': ['case', ['get', 'on'], 6, 4], 'circle-color': ['case', ['get', 'on'], '#6250d6', '#ffffff'], 'circle-stroke-color': '#6250d6', 'circle-stroke-width': 2 } })
+      map.addLayer({ id: 'fl-gw-lbl', type: 'symbol', source: 'fl-gw', minzoom: 12.5, layout: { visibility: 'none', 'text-field': ['get', 'id'], 'text-size': 10, 'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#4b3fb0', 'text-halo-color': '#ffffff', 'text-halo-width': 1.4 } })
+      map.addSource('fl-inc', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'fl-inc-halo', type: 'circle', source: 'fl-inc', layout: { visibility: 'none' }, paint: { 'circle-radius': 18, 'circle-color': '#d03b3b', 'circle-opacity': 0.18 } })
+      map.addLayer({ id: 'fl-inc', type: 'circle', source: 'fl-inc', layout: { visibility: 'none' }, paint: { 'circle-radius': 6, 'circle-color': '#d03b3b', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2 } })
+      map.addSource('fl-stop', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'fl-stop', type: 'circle', source: 'fl-stop', layout: { visibility: 'none' }, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 15, 8], 'circle-color': FL_STOP_COLOR, 'circle-stroke-color': ['case', ['get', 'risk'], '#d03b3b', ['get', 'color']], 'circle-stroke-width': ['case', ['get', 'risk'], 3.5, 2.5] } })
+      map.addLayer({ id: 'fl-stop-lbl', type: 'symbol', source: 'fl-stop', minzoom: 12, layout: { visibility: 'none', 'text-field': ['get', 'label'], 'text-size': 10.5, 'text-offset': [0, 1.2], 'text-anchor': 'top', 'text-font': ['Noto Sans Regular'], 'text-max-width': 14 }, paint: { 'text-color': '#101828', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 } })
+      map.addSource('fl-depot', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'fl-depot', type: 'circle', source: 'fl-depot', layout: { visibility: 'none' }, paint: { 'circle-radius': 11, 'circle-color': '#101828', 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 3 } })
+      map.addLayer({ id: 'fl-depot-lbl', type: 'symbol', source: 'fl-depot', layout: { visibility: 'none', 'text-field': ['get', 'nom'], 'text-size': 11, 'text-offset': [0, 1.5], 'text-anchor': 'top', 'text-font': ['Noto Sans Bold'] }, paint: { 'text-color': '#101828', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 } })
+      map.addSource('fl-truck', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'fl-truck', type: 'circle', source: 'fl-truck', layout: { visibility: 'none' }, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, ['case', ['get', 'sel'], 8, 6], 15, ['case', ['get', 'sel'], 12, 9]], 'circle-color': ['get', 'color'], 'circle-stroke-color': ['case', ['get', 'late'], '#d03b3b', '#ffffff'], 'circle-stroke-width': 3 } })
+      map.addLayer({ id: 'fl-truck-lbl', type: 'symbol', source: 'fl-truck', layout: { visibility: 'none', 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0, 1.4], 'text-anchor': 'top', 'text-font': ['Noto Sans Bold'], 'text-allow-overlap': false }, paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#ffffff', 'text-halo-width': 1.8 } })
+      pop('fl-truck', (p) => p.info)
+      pop('fl-stop', (p) => p.info)
+      pop('fl-gw', (p) => `Pasarela LoRaWAN ${p.id} (simulada)${p.on ? ' · recibiendo camiones ahora' : ''}`)
+      pop('fl-depot', (p) => `${p.nom} · base de la flota (empresa simulada)`)
+      map.on('click', 'fl-truck', (e) => flPickRef.current?.(e.features[0].properties.id))
+
       // ruta recomendada
       map.addSource('route', { type: 'geojson', data: EMPTY })
       map.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: ['==', '$type', 'LineString'], paint: { 'line-color': '#6250d6', 'line-width': 5, 'line-dasharray': [1.5, 1.2] } })
@@ -530,6 +562,32 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
     map.getSource('amb-route')?.setData({ type: 'FeatureCollection', features: vis.filter((a) => a.path?.length > 1).map((a) => ({ type: 'Feature', properties: { v16: a.v16.length > 0 }, geometry: { type: 'LineString', coordinates: a.path } })) })
   }, [ready, emergency?.amb, emergency?.bays])
 
+  // ---- flota de camiones (cada segundo)
+  useEffect(() => {
+    const map = mapRef.current
+    const v = flota?.view
+    if (!ready || !map || !v) return
+    const selId = flota.selId
+    const FASE = { base: 'en la base', ruta: 'en ruta', descarga: 'descargando', espera: 'esperando a que abra el cliente', vuelta: 'volviendo a la base', fin: 'en la base (terminado)' }
+    const trucks = v.trucks.filter((t) => t.phase !== 'fin' && t.phase !== 'base')
+    map.getSource('fl-route')?.setData({ type: 'FeatureCollection', features: v.trucks.filter((t) => t.path.length > 1).map((t) => ({ type: 'Feature', properties: { color: t.color, sel: t.id === selId }, geometry: { type: 'LineString', coordinates: t.path } })) })
+    map.getSource('fl-stop')?.setData({ type: 'FeatureCollection', features: v.trucks.flatMap((t) => t.stops.map((o, i) => pt(o.lon, o.lat, {
+      color: t.color, st: o.status, risk: o.status === 'pendiente' && o.lateEta > 0.5,
+      label: selId && selId !== t.id ? '' : `${o.id}${o.status === 'pendiente' && o.eta ? ' · ' + hhmmMin(o.eta) : ''}`,
+      info: `${o.id} · ${o.nom} (${o.kind === 'recogida' ? 'recogida urgente' : o.tipo}) · ${o.kg} kg · ventana ${hhmmMin(o.win[0])}–${hhmmMin(o.win[1])} · ${t.id}, parada ${i + 1} · ${o.status === 'pendiente' ? `llegada prevista ${o.eta ? hhmmMin(o.eta) : '—'}${o.lateEta > 0.5 ? ` (${Math.round(o.lateEta)} min tarde)` : ''}` : o.status === 'tarde' ? `entregada con ${o.late} min de retraso` : 'entregada a tiempo'}`,
+    }))) })
+    map.getSource('fl-depot')?.setData({ type: 'FeatureCollection', features: [pt(v.depot.lon, v.depot.lat, { nom: 'Base ZAL' })] })
+    map.getSource('fl-truck')?.setData({ type: 'FeatureCollection', features: trucks.map((t) => pt(t.pos[0], t.pos[1], {
+      id: t.id, color: t.color, sel: t.id === selId, late: t.lateNext.length > 0,
+      label: `${t.id}${t.speedKmh > 1 ? ` · ${Math.round(t.speedKmh)} km/h` : t.phase === 'descarga' ? ' · descargando' : ''}`,
+      info: `${t.id} · ${FASE[t.phase]} · ${t.load} kg (${t.loadPct} %) · ${t.done}/${t.stops.length} paradas${t.next ? ` · próxima ${t.next.id} (${t.next.nom}) a las ${hhmmMin(t.next.eta)}` : ''}${t.slow > 1.15 ? ' · tráfico denso' : ''}${t.gw ? ` · último GPS por LoRaWAN vía ${t.gw.id} (RSSI ${t.gw.rssi} dBm, SF${t.gw.sf})` : ''} · simulado`,
+    })) })
+    const gwOn = new Set(trucks.map((t) => t.gw?.id).filter(Boolean))
+    map.getSource('fl-gw')?.setData({ type: 'FeatureCollection', features: GATEWAYS.map((g) => pt(g.lon, g.lat, { id: g.id, on: gwOn.has(g.id) })) })
+    map.getSource('fl-link')?.setData({ type: 'FeatureCollection', features: trucks.filter((t) => t.gw && (!selId || t.id === selId)).map((t) => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [t.pos, [t.gw.lon, t.gw.lat]] } })) })
+    map.getSource('fl-inc')?.setData({ type: 'FeatureCollection', features: flota.incidents.map((b) => pt(b.lon, b.lat, {})) })
+  }, [ready, flota?.view, flota?.selId, flota?.incidents])
+
   // ---- FIWARE
   useEffect(() => {
     const map = mapRef.current
@@ -672,6 +730,7 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
             FIWARE: {live.fiware.status === 'ok' ? `${live.fiware.n} entidades${live.fiware.demo ? ' (MUESTRA, valores inventados)' : ' en tiempo real'}` : 'sin broker configurado (ver README o ?fiware=demo)'}
           </div>
         )}
+        {layers.flota && <div className="muted">Flota: camiones, pedidos y mensajes LoRaWAN simulados · distancias, tiempos y trazado reales por carretera (OSRM / OpenStreetMap)</div>}
         {layers.agua && <div className="muted">Agua y lluvia: distritos y suelo reales · uso de la red y depósitos según un modelo didáctico (método racional){agua?.err ? ` · ${agua.err}` : ''}</div>}
         {layers.urb && <div className="muted">Urbanismo: calificación real del suelo (Mapa Urbanístic de Catalunya, Generalitat) · fichas de parcela del Catastro en directo{urbanisme?.err ? ` · ${urbanisme.err}` : ''}</div>}
         {msg && <div className="err">{msg}</div>}

@@ -725,3 +725,27 @@ input[type=range] { accent-color: var(--acc); }
 .view > .ag-esc { width: auto; height: auto; }
 @media (min-width: 761px) { .view > .toolbar { left: calc(50% - 90px); max-width: calc(100% - 270px); } }
 @media (max-width: 760px) { .dock { top: 52px; } .ag-esc { top: 94px; } }
+
+/* ---- flota de camiones */
+.fl .board tr.sel td { background: #f3f7fd; }
+.ok-t { color: #067a06; font-weight: 600; }
+.res-kpis .good b { color: #067a06; }
+.fl .res-kpis { grid-template-columns: repeat(3, 1fr); }
+.fl-clock { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin: 8px 0; }
+.fl-clock b { font: 600 20px ui-monospace, Menlo, Consolas, monospace; display: block; line-height: 1.1; }
+.fl-clock small { color: var(--mut); font-size: 10.5px; }
+.fl-speeds { display: flex; gap: 3px; flex-wrap: wrap; }
+.fl-speeds .chip { font-size: 11px; padding: 3px 7px; }
+.fl h3 .dotf, .fl .board .dotf { vertical-align: middle; }
+.fl-sel { margin-top: 4px; }
+.fl-lora { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.fl-kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 11.5px; }
+.fl-kv span { color: var(--mut); }
+.fl-kv b { font-weight: 600; word-break: break-all; }
+.mono { font: 11px ui-monospace, Menlo, Consolas, monospace; }
+.fl-json { margin: 8px 0 0; background: #101828; color: #d6e4ff; border-radius: 5px; padding: 8px; font: 11px/1.45 ui-monospace, Menlo, Consolas, monospace; overflow: auto; max-height: 180px; }
+.fl-log { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+.fl-ev { font-size: 11.5px; padding: 4px 8px; border-top: 1px solid var(--line); border-left: 3px solid transparent; }
+.fl-ev:first-child { border-top: 0; }
+.fl-ev small { color: var(--mut); font-family: ui-monospace, Menlo, Consolas, monospace; margin-right: 4px; }
+.fl-ev.ok { border-left-color: #0ca30c; } .fl-ev.bad { border-left-color: #d03b3b; } .fl-ev.warn { border-left-color: #fab219; } .fl-ev.plan { border-left-color: #6250d6; }

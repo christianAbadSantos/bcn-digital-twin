@@ -21,6 +21,8 @@ import { useUrbanisme } from './urbanisme.js'
 import UrbanismePanel from './UrbanismePanel.jsx'
 import FloatPanel from './FloatPanel.jsx'
 import AguaPanel, { useAgua, AguaLluvia, AguaBalance, AguaCausa, AguaCorte, AguaEscenaris } from './agua.jsx'
+import { useFlota } from './useFlota.js'
+import FlotaPanel from './FlotaPanel.jsx'
 
 // Cada vista se carga bajo demanda (maplibre y three pesan bastante)
 const MapTwin = lazy(() => import('./MapTwin.jsx'))
@@ -42,6 +44,7 @@ const CHIPS = {
   res: 'Residuos',
   urb: 'Urbanismo',
   agua: 'Agua y lluvia',
+  flota: 'Flota (camiones)',
   urg: 'Urgencias',
   v16: 'Balizas V16 (real)',
   metro: 'Metro 3D',
@@ -54,7 +57,7 @@ const CHIPS = {
   port: 'Puerto',
 }
 const AGUA_PANELS = { lluvia: 'Lluvia', balance: 'Balance de caudales', causa: 'Causa → efecto', corte: 'Corte A–A' }
-const TAB_NOM = { fuentes: 'Fuentes', alertas: 'Alertas', urg: 'Urgencias', res: 'Residuos', urb: 'Urbanismo', agua: 'Agua y lluvia', ruta: 'Ruta', historico: 'Histórico' }
+const TAB_NOM = { fuentes: 'Fuentes', alertas: 'Alertas', urg: 'Urgencias', res: 'Residuos', urb: 'Urbanismo', agua: 'Agua y lluvia', flota: 'Flota', ruta: 'Ruta', historico: 'Histórico' }
 const SCENE_CHIPS = ['labels', 'metro', 'port', 'rain', 'accidents', 'fiware']
 
 export default function App() {
@@ -69,8 +72,6 @@ export default function App() {
   const emergency = useEmergency(liveRaw?.zones)
   const residus = useResidus()
   const [resFraccio, setResFraccio] = useState('all')
-  // la fuente FIWARE se añade al resto (aparece en el panel Fuentes aunque no esté configurada)
-  const live = useMemo(() => (liveRaw ? { ...liveRaw, sources: [...liveRaw.sources, rodalies.source, fiware.source, reports.source, ...emergency.sources, residus.source], fiware, rodalies, reports } : null), [liveRaw, fiware, rodalies, reports, emergency.sources, residus.source])
 
   const [view, setView] = useState('map')
   const [tab, setTab] = useState('fuentes')
@@ -79,9 +80,12 @@ export default function App() {
   const [focus, setFocus] = useState(null)
   const [sheet, setSheet] = useState(false) // panel inferior en móvil
   const [sel, setSel] = useState({ from: 'aeroport', to: 'catalunya' })
-  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, reports: true, res: true, urg: true, v16: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true, urb: false, agua: false })
+  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, reports: true, res: true, urg: true, v16: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true, urb: false, agua: false, flota: false })
   const urbanisme = useUrbanisme(layers.urb)
   const agua = useAgua(layers.agua, liveRaw?.weather?.rain ?? 0)
+  const flota = useFlota(layers.flota || tab === 'flota', liveRaw?.zones, emergency.beacons)
+  // la fuente FIWARE se añade al resto (aparece en el panel Fuentes aunque no esté configurada)
+  const live = useMemo(() => (liveRaw ? { ...liveRaw, sources: [...liveRaw.sources, rodalies.source, fiware.source, reports.source, ...emergency.sources, residus.source, flota.source], fiware, rodalies, reports } : null), [liveRaw, fiware, rodalies, reports, emergency.sources, residus.source, flota.source])
 
   // ---- paneles flotantes y modos de pantalla (estilo centro de control)
   const [fp, setFp] = useState({}) // paneles abiertos: { lluvia: true, 'tab:res': true, ... }
@@ -135,6 +139,7 @@ export default function App() {
     setTab(t)
     if (t === 'urb') showUrb()
     if (t === 'agua') setLayers((l) => ({ ...l, agua: true }))
+    if (t === 'flota') setLayers((l) => ({ ...l, flota: true }))
   }
   const renderTab = (t) => (
     t === 'fuentes' ? <SourcesPanel live={live} mode={mode} hist={hist} paused={paused} onResume={resume} />
@@ -143,6 +148,7 @@ export default function App() {
     : t === 'res' ? <ResidusPanel res={residus} fraccio={resFraccio} setFraccio={setResFraccio} onFocus={onFocus} />
     : t === 'urb' ? <UrbanismePanel urb={urbanisme} enabled={layers.urb} onEnable={showUrb} onFocus={onFocus} />
     : t === 'agua' ? <AguaPanel agua={agua} open={fp} onOpen={toggleFp} enabled={layers.agua} onEnable={() => setLayers((l) => ({ ...l, agua: true }))} />
+    : t === 'flota' ? <FlotaPanel fl={flota} onFocus={onFocus} enabled={layers.flota} onEnable={() => setLayers((l) => ({ ...l, flota: true }))} />
     : t === 'ruta' ? <RoutePanel sel={sel} setSel={setSel} route={route} live={live} />
     : t === 'historico' ? <Panel data={data} hour={hour} onPick={setHour} />
     : null
@@ -205,7 +211,7 @@ export default function App() {
           ) : (
             <Suspense fallback={<div className="gate"><div className="card">Cargando vista…</div></div>}>
               {view === 'map' ? (
-                <MapTwin data={data} hour={hour} layers={layers} live={live} emergency={emergency} residus={layers.res ? residus : null} resFraccio={resFraccio} urbanisme={urbanisme} onUrbPick={(p) => { urbanisme.tria(p); setTab('urb') }} agua={layers.agua ? agua : null} onAguaPick={(c) => { agua.setSel(c); if (!layers.urb) setTab('agua') }} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} googleKey={GOOGLE_KEY} tier={TIER.key}
+                <MapTwin data={data} hour={hour} layers={layers} live={live} emergency={emergency} residus={layers.res ? residus : null} resFraccio={resFraccio} urbanisme={urbanisme} onUrbPick={(p) => { urbanisme.tria(p); setTab('urb') }} agua={layers.agua ? agua : null} onAguaPick={(c) => { agua.setSel(c); if (!layers.urb) setTab('agua') }} flota={layers.flota ? flota : null} onFlotaPick={(id) => { flota.setSelId(id); setTab('flota') }} focus={focus} route={tab === 'ruta' ? route : null} tilesUrl={TILES3D_URL} googleKey={GOOGLE_KEY} tier={TIER.key}
                   picking={picking} onPick={(p) => { setPicking(false); setReportPoint(p) }} />
               ) : (
                 <ThreeTwin data={data} hour={hour} layers={layers} live={live} />
@@ -252,6 +258,7 @@ export default function App() {
             <button className={tab === 'res' ? 'on' : ''} onClick={() => setTab('res')}>Residuos</button>
             <button className={tab === 'urb' ? 'on' : ''} onClick={() => goTab('urb')}>Urbanismo</button>
             <button className={tab === 'agua' ? 'on' : ''} onClick={() => goTab('agua')}>Agua</button>
+            <button className={tab === 'flota' ? 'on' : ''} onClick={() => goTab('flota')}>Flota</button>
             <button className={tab === 'ruta' ? 'on' : ''} onClick={() => setTab('ruta')}>Ruta</button>
             <button className={tab === 'historico' ? 'on' : ''} onClick={() => setTab('historico')}>Histórico</button>
           </nav>
