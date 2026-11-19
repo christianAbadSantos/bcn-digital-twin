@@ -10,6 +10,21 @@ import { GRUPS } from './urbanisme.js'
 import { DEPOSITS, ESTAT_COLOR } from './agua.jsx'
 import { GATEWAYS } from '../shared/lorawan.js'
 import { hhmm as hhmmMin } from '../shared/flota.js'
+import { localToLonLat } from './hospitalGeo.js'
+
+// edificios publicados en el entorno común de datos (otra aplicación): /cde/publicados.json
+const CDE_URL = import.meta.env.VITE_CDE_URL || '/cde/'
+const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+function bimFeatures(pub) {
+  const out = []
+  for (const p of pub.proyectos || []) {
+    const h = { lat: p.origen.lat, lon: p.origen.lon, trueNorth: [Math.cos((p.rumbo * Math.PI) / 180), Math.sin((p.rumbo * Math.PI) / 180)] }
+    const ring = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]].map(([a, b]) => localToLonLat(h, (a * p.planta.ancho) / 2, (b * p.planta.fondo) / 2))
+    const info = `<b>${esc(p.codigo)} · ${esc(p.nombre)}</b><br>${esc(p.tipo)} · ${esc(p.fase)}<br>${p.publicados.map((m) => `${esc(m.titulo)}: <b>${esc(m.revision)}</b> (${esc(m.idoneidad)})`).join('<br>')}<br><a href="${esc(new URL(p.enlace || CDE_URL, location.href).href)}">Abrir en el CDE →</a>`
+    p.plantas.forEach((pl, i) => out.push({ type: 'Feature', properties: { base: pl.base, top: pl.top, color: i === p.plantas.length - 1 ? '#5b6270' : i % 2 ? '#f6c35a' : '#f0a92e', info, nom: i === 0 ? `${p.codigo} · BIM` : '' }, geometry: { type: 'Polygon', coordinates: [ring] } }))
+  }
+  return out
+}
 
 // Mapa libre: teselas vectoriales de OpenStreetMap servidas por OpenFreeMap (sin clave).
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty'
@@ -38,6 +53,7 @@ const GROUPS = {
   port: ['port-fill', 'port-line'],
   urb: ['urb-fill', 'urb-line', 'urb-sel', 'cat-parcel', 'bld-sel'],
   agua: ['agua-fill', 'agua-line', 'agua-sel', 'agua-dep-halo', 'agua-dep', 'agua-dep-lbl'],
+  bim: ['bim-ext', 'bim-lbl'],
   flota: ['fl-route', 'fl-link', 'fl-gw', 'fl-gw-lbl', 'fl-inc-halo', 'fl-inc', 'fl-stop', 'fl-stop-lbl', 'fl-depot', 'fl-depot-lbl', 'fl-truck', 'fl-truck-lbl'],
 }
 
@@ -298,6 +314,14 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
       map.on('mouseleave', 'reports-dot', () => (map.getCanvas().style.cursor = pickRef.current ? 'crosshair' : ''))
       // modo "elegir punto" para un reporte nuevo
       map.on('click', (e) => pickRef.current?.({ lon: e.lngLat.lng, lat: e.lngLat.lat }))
+
+      // ---- edificios BIM publicados en el CDE (modelo IFC georreferenciado)
+      map.addSource('bim', { type: 'geojson', data: EMPTY })
+      map.addLayer({ id: 'bim-ext', type: 'fill-extrusion', source: 'bim', paint: { 'fill-extrusion-color': ['get', 'color'], 'fill-extrusion-base': ['get', 'base'], 'fill-extrusion-height': ['get', 'top'], 'fill-extrusion-opacity': 0.95 } })
+      map.addLayer({ id: 'bim-lbl', type: 'symbol', source: 'bim', minzoom: 14, filter: ['!=', ['get', 'nom'], ''], layout: { 'text-field': ['get', 'nom'], 'text-size': 11, 'text-font': ['Noto Sans Bold'], 'text-offset': [0, -1.6] }, paint: { 'text-color': '#b45309', 'text-halo-color': '#ffffff', 'text-halo-width': 1.8 } })
+      map.on('click', 'bim-ext', (e) => new maplibregl.Popup({ closeButton: true, maxWidth: '320px' }).setLngLat(e.lngLat).setHTML(e.features[0].properties.info).addTo(map))
+      map.on('mouseenter', 'bim-ext', () => (map.getCanvas().style.cursor = 'pointer'))
+      map.on('mouseleave', 'bim-ext', () => (map.getCanvas().style.cursor = pickRef.current ? 'crosshair' : ''))
 
       // ---- residuos: puntos críticos de limpieza, contenedores con sensor, ruta de recogida, puntos verdes
       map.addSource('pcritic', { type: 'geojson', data: EMPTY })
@@ -654,6 +678,17 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
     if (!ready || !map || !map.getLayer('agua-sel')) return
     map.setFilter('agua-sel', ['==', ['get', 'codi'], agua?.sel || ''])
   }, [ready, agua?.sel])
+
+  // ---- edificios BIM: lo que el CDE tiene publicado
+  useEffect(() => {
+    const map = mapRef.current
+    if (!ready || !map || !layers.bim) return
+    let cancel = false
+    fetch(new URL('publicados.json', new URL(CDE_URL, location.href)).href).then((r) => (r.ok ? r.json() : null)).then((pub) => {
+      if (!cancel && pub) map.getSource('bim')?.setData({ type: 'FeatureCollection', features: bimFeatures(pub) })
+    }).catch(() => {})
+    return () => { cancel = true }
+  }, [ready, layers.bim])
 
   // ---- volar a una alerta
   useEffect(() => {

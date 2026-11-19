@@ -32,6 +32,24 @@ Un modelo 3D de Barcelona que junta en un solo mapa datos reales y en vivo de la
   </tr>
 </table>
 
+## Entorno común de datos (CDE)
+
+Aplicación propia en **[/cde/](https://bcn-digital-twin.pages.dev/cde/)**, conectada al gemelo. Sigue la UNE-EN ISO 19650:
+
+- **Contenedores** con estados *En curso → Compartido → Publicado → Archivado*, códigos de idoneidad (S0–S4, A1) y revisiones (P01.01, P01, C01).
+- **Roles:** autor, coordinador BIM y cliente, cada uno con sus pasos.
+- **Nomenclatura** `Proyecto-Originador-Volumen-Nivel-Tipo-Rol-Número`, comprobada al subir cada fichero.
+- **Historial y registro de actividad** de cada contenedor.
+- **Visor IFC** propio (web-ifc + three.js): selección de elementos, GlobalId, propiedades, y colores por decisiones, mantenimiento o sensores.
+- **Decisiones de obra** enlazadas a elementos del IFC por su GlobalId, exportables en **BCF 2.1**.
+- **Mantenimiento (GMAO):** activos y plan preventivo sacados del modelo, órdenes correctivas, sensores en tiempo real (simulados) y exportación CSV.
+- **GIS:** el modelo georreferenciado desde el IfcSite sobre el relieve del ICGC, comprobando la cota.
+- **SharePoint:** sincronización por estados con Microsoft Graph, en **modo simulación**.
+
+El CDE publica sus modelos publicados en `/cde/publicados.json`. El gemelo los lee y los dibuja en el mapa (capa *Edificios BIM (CDE)*), con un enlace de vuelta al CDE.
+
+Los modelos IFC de ejemplo (un edificio ficticio en Sant Antoni) se generan con `node scripts/build-cde-ifc.mjs`. Los datos de la demo del CDE se guardan en el navegador.
+
 ## Arquitectura
 
 ```

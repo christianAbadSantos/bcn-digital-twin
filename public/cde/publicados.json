@@ -1,0 +1,50 @@
+{
+ "cde": "Entorno común de datos · gemelo digital de Barcelona",
+ "norma": "UNE-EN ISO 19650",
+ "generado": "2026-11-19",
+ "proyectos": [
+  {
+   "codigo": "BCN01",
+   "nombre": "Biblioteca de barri Sant Antoni",
+   "tipo": "Equipamiento municipal (ejemplo)",
+   "fase": "Ejecución de obra",
+   "origen": {
+    "lat": 41.379296,
+    "lon": 2.160447,
+    "cota": 14.4
+   },
+   "rumbo": 44.5,
+   "planta": {
+    "ancho": 24,
+    "fondo": 16
+   },
+   "plantas": [
+    {
+     "nom": "Planta baja",
+     "base": 0,
+     "top": 4
+    },
+    {
+     "nom": "Planta primera",
+     "base": 4,
+     "top": 7.6
+    },
+    {
+     "nom": "Cubierta",
+     "base": 7.6,
+     "top": 7.949999999999999
+    }
+   ],
+   "publicados": [
+    {
+     "nombre": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+     "titulo": "Modelo de arquitectura",
+     "revision": "C01",
+     "idoneidad": "A1",
+     "url": "/data/cde/BCN01-CAB-ZZ-XX-M3-A-0001.ifc"
+    }
+   ],
+   "enlace": "/cde/"
+  }
+ ]
+}

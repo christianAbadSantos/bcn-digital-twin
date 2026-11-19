@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  build: { chunkSizeWarningLimit: 2500 },
+  // dos aplicaciones: el gemelo (/) y el entorno común de datos (/cde/), cada una con su entrada
+  build: { chunkSizeWarningLimit: 2500, rollupOptions: { input: { gemelo: 'index.html', cde: 'cde/index.html' } } },
   worker: { format: 'es' },
   server: {
     // en desarrollo, los IFC del Port se piden a través de este proxy (su servidor no permite CORS);

@@ -1,0 +1,391 @@
+{
+ "origen": {
+  "lat": 41.379296,
+  "lon": 2.160447,
+  "cota": 14.4
+ },
+ "rumbo": 44.5,
+ "planta": {
+  "ancho": 24,
+  "fondo": 16,
+  "altura": 7.949999999999999
+ },
+ "elementos": [
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-001",
+   "guid": "1fJjzfoGg141Aj5fat$lyx",
+   "entidad": "IFCWALL",
+   "nombre": "Fachada sur (c/ Comte Borrell) · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-002",
+   "guid": "1GUWEZK_PiR2KlQ5ARZZww",
+   "entidad": "IFCWALL",
+   "nombre": "Fachada este · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-003",
+   "guid": "14iE_1wLidle4YRMWcXqHG",
+   "entidad": "IFCWALL",
+   "nombre": "Fachada norte (patio) · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-004",
+   "guid": "2W8h0FVzOm4HvIekSr6shm",
+   "entidad": "IFCWALL",
+   "nombre": "Fachada oeste · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-005",
+   "guid": "1orCs31hO9ELgKkutrK7mk",
+   "entidad": "IFCWALL",
+   "nombre": "Tabique de separación · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "FJ-00",
+   "guid": "0RISTsO3hXK2e0zPcqYrKg",
+   "entidad": "IFCSLAB",
+   "nombre": "Forjado Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PI-001",
+   "guid": "32IyxotNbFKT0YHxMN9pRO",
+   "entidad": "IFCCOLUMN",
+   "nombre": "Pilar de hormigón 40×40 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PI-002",
+   "guid": "2vXM150pnAigPRcnWr0aSg",
+   "entidad": "IFCCOLUMN",
+   "nombre": "Pilar de hormigón 40×40 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PI-003",
+   "guid": "3c0FWjFe5$oahuVX6PydiI",
+   "entidad": "IFCCOLUMN",
+   "nombre": "Pilar de hormigón 40×40 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PI-004",
+   "guid": "1naOyihYo4rZBK$bvOqebP",
+   "entidad": "IFCCOLUMN",
+   "nombre": "Pilar de hormigón 40×40 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-00S1",
+   "guid": "3PSzvsLE7CZdJ$ubg9K9y_",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana calle 1 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-00N1",
+   "guid": "0xkDrN1xi9C2wS_HBR3rSA",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana patio 1 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-00S2",
+   "guid": "2EYkjuB4d0DcwXQHI1JI_p",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana calle 2 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-00N2",
+   "guid": "22jq7VaDTqMWaXPsjWr4N7",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana patio 2 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-00S3",
+   "guid": "2btkQ0YNCNqTV8vDHN85uQ",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana calle 3 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-00N3",
+   "guid": "2CJGoTEIzl11iJ7ItYH8ys",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana patio 3 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-00S4",
+   "guid": "3a5mACRbFxDQ38$_5aM2Bu",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana calle 4 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-00N4",
+   "guid": "3OX9zA12WNev4lD_YFCU7H",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana patio 4 · Planta baja",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-011",
+   "guid": "2y9d3qoEiOxvVDfgPLZMMt",
+   "entidad": "IFCWALL",
+   "nombre": "Fachada sur (c/ Comte Borrell) · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-012",
+   "guid": "0HVyz_TAvsDC4Cq2e_D2KC",
+   "entidad": "IFCWALL",
+   "nombre": "Fachada este · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-013",
+   "guid": "39Hb0lH0ioN$esZYFMPUuB",
+   "entidad": "IFCWALL",
+   "nombre": "Fachada norte (patio) · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-014",
+   "guid": "3hMVsDCZ1h0iYEiJdEHubD",
+   "entidad": "IFCWALL",
+   "nombre": "Fachada oeste · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "MU-015",
+   "guid": "2O0aBCazQOBZc5KZyQou8U",
+   "entidad": "IFCWALL",
+   "nombre": "Tabique de separación · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "FJ-01",
+   "guid": "0zT_zbtU_CMmPnAF6WH6ZX",
+   "entidad": "IFCSLAB",
+   "nombre": "Forjado Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PI-011",
+   "guid": "0A$30jvdSCTax9ujH42A3s",
+   "entidad": "IFCCOLUMN",
+   "nombre": "Pilar de hormigón 40×40 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PI-012",
+   "guid": "3vl0MsUkI5ATkoYPWbSaoQ",
+   "entidad": "IFCCOLUMN",
+   "nombre": "Pilar de hormigón 40×40 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PI-013",
+   "guid": "0jivUhZoJk$quql3eLGko3",
+   "entidad": "IFCCOLUMN",
+   "nombre": "Pilar de hormigón 40×40 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PI-014",
+   "guid": "06z88d64DR0jPkGXrXR$lS",
+   "entidad": "IFCCOLUMN",
+   "nombre": "Pilar de hormigón 40×40 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-01S1",
+   "guid": "1VwuNvEWGoDAIxoSCZXGOD",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana calle 1 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-01N1",
+   "guid": "3mIIEMJ9kAwa2VL2t_$s63",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana patio 1 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-01S2",
+   "guid": "1Fvj3Z$vG7xuV1dRV5XqHT",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana calle 2 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-01N2",
+   "guid": "2nf73KsRjYaus87YRHHbhx",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana patio 2 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-01S3",
+   "guid": "1lbixPYbIeQvkBU4V83v3r",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana calle 3 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-01N3",
+   "guid": "1fCHVdNQ0mR0gHQoE22L7R",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana patio 3 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-01S4",
+   "guid": "0kr3$$lGMROv26Iv55GdVd",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana calle 4 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "VE-01N4",
+   "guid": "3cs5WmyU9dl9KmDCSlUcGC",
+   "entidad": "IFCWINDOW",
+   "nombre": "Ventana patio 4 · Planta primera",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PU-001",
+   "guid": "3ZlwpQ2YI378bSr0Y3H$aa",
+   "entidad": "IFCDOOR",
+   "nombre": "Puerta de acceso principal",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "PU-002",
+   "guid": "3N1k_uFfzz8FtAaegDCYu1",
+   "entidad": "IFCDOOR",
+   "nombre": "Salida de emergencia al patio",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-A-0001.ifc",
+   "codigo": "CU-001",
+   "guid": "3smp792WAzajLTBXd4RrgE",
+   "entidad": "IFCROOF",
+   "nombre": "Cubierta plana transitable",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "CL-001",
+   "guid": "2Jhyw6ZKJLhg09zvGB1LEU",
+   "entidad": "IFCUNITARYEQUIPMENT",
+   "nombre": "Climatizadora UTA-1 (cubierta)",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "BO-001",
+   "guid": "1DaZY6LXT3A4mFAE1KoF$i",
+   "entidad": "IFCPUMP",
+   "nombre": "Grupo de presión de agua fría",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "BO-002",
+   "guid": "32iHM3WqBfpyctYxKiTna6",
+   "entidad": "IFCPUMP",
+   "nombre": "Bomba de circulación ACS",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "CE-001",
+   "guid": "2KC5IkLfKQrg$OdoVyjhB$",
+   "entidad": "IFCELECTRICDISTRIBUTIONBOARD",
+   "nombre": "Cuadro general de baja tensión",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "SE-001",
+   "guid": "15jj29Exv1A5qAEMISwmao",
+   "entidad": "IFCSENSOR",
+   "nombre": "Sensor ambiental vestíbulo",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "SE-002",
+   "guid": "0P6hHZqHKvGsBk_D2LEzW6",
+   "entidad": "IFCSENSOR",
+   "nombre": "Sensor ambiental sala infantil",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "SE-003",
+   "guid": "0l4mqubNRya3oKcyFHviAB",
+   "entidad": "IFCSENSOR",
+   "nombre": "Sensor ambiental sala de lectura",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "SE-004",
+   "guid": "3Dw7MoRW8iW$cuS81EzAmo",
+   "entidad": "IFCSENSOR",
+   "nombre": "Sensor ambiental sala polivalente",
+   "nivel": "01"
+  }
+ ]
+}

@@ -27,6 +27,8 @@ import FlotaPanel from './FlotaPanel.jsx'
 // Cada vista se carga bajo demanda (maplibre y three pesan bastante)
 const MapTwin = lazy(() => import('./MapTwin.jsx'))
 const ThreeTwin = lazy(() => import('./ThreeTwin.jsx'))
+// el entorno común de datos es otra aplicación (/cde/); el gemelo solo lee lo que tiene publicado
+const CDE_URL = import.meta.env.VITE_CDE_URL || '/cde/'
 
 const TILES3D_URL = import.meta.env.VITE_TILES3D_URL || ''
 const GOOGLE_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || ''
@@ -46,6 +48,7 @@ const CHIPS = {
   agua: 'Agua y lluvia',
   flota: 'Flota (camiones)',
   urg: 'Urgencias',
+  bim: 'Edificios BIM (CDE)',
   v16: 'Balizas V16 (real)',
   metro: 'Metro 3D',
   trees: 'Árboles',
@@ -80,7 +83,7 @@ export default function App() {
   const [focus, setFocus] = useState(null)
   const [sheet, setSheet] = useState(false) // panel inferior en móvil
   const [sel, setSel] = useState({ from: 'aeroport', to: 'catalunya' })
-  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, reports: true, res: true, urg: true, v16: true, tiles3d: false, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true, urb: false, agua: false, flota: false })
+  const [layers, setLayers] = useState({ bld3d: true, terrain: TIER.key !== 'low', sat: false, fiware: true, rodalies: true, reports: true, res: true, urg: true, v16: true, tiles3d: false, bim: true, metro: true, trees: true, labels: true, traffic: true, accidents: true, alerts: true, rain: true, port: true, urb: false, agua: false, flota: false })
   const urbanisme = useUrbanisme(layers.urb)
   const agua = useAgua(layers.agua, liveRaw?.weather?.rain ?? 0)
   const flota = useFlota(layers.flota || tab === 'flota', liveRaw?.zones, emergency.beacons)
@@ -119,6 +122,16 @@ export default function App() {
   }, [])
   const warn = live ? live.alerts.filter((a) => a.sev === 'warn').length : 0
   const info = live ? live.alerts.filter((a) => a.sev === 'info').length : 0
+
+  // si se llega desde el CDE (?lon=…&lat=…&z=…), el mapa vuela a ese edificio cuando ya está cargado
+  useEffect(() => {
+    if (!ok) return
+    const q = new URLSearchParams(location.search)
+    const lon = Number(q.get('lon')), lat = Number(q.get('lat'))
+    if (!q.has('lon') || !Number.isFinite(lon) || !Number.isFinite(lat)) return
+    const id = setTimeout(() => setFocus({ lon, lat, zoom: Number(q.get('z')) || 17.5, pitch: 60, t: Date.now() }), 3000)
+    return () => clearTimeout(id)
+  }, [ok])
 
   // al cargar, la línea de tiempo empieza en el día más lluvioso de 2024 (si hay datos de lluvia)
   useEffect(() => {
@@ -175,6 +188,7 @@ export default function App() {
           <button className={view === 'map' ? 'on' : ''} onClick={() => goView('map')}>Mapa 3D</button>
           <button className={view === 'scene' ? 'on' : ''} onClick={() => goView('scene')}>Escena 3D</button>
           <button className={view === 'dash' ? 'on' : ''} onClick={() => goView('dash')}>Dashboard</button>
+          <a className="navlink" href={CDE_URL} title="Entorno común de datos (ISO 19650): modelos IFC, decisiones de obra, mantenimiento">CDE ↗</a>
         </nav>
         <div className="top-r">
           <span className="pill">Datos reales + simulados</span>
