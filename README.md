@@ -45,6 +45,10 @@ Aplicación propia en **[/cde/](https://bcn-digital-twin.pages.dev/cde/)**, cone
 - **Mantenimiento (GMAO):** activos y plan preventivo sacados del modelo, órdenes correctivas, sensores en tiempo real (simulados) y exportación CSV.
 - **GIS:** el modelo georreferenciado desde el IfcSite sobre el relieve del ICGC, comprobando la cota.
 - **SharePoint:** sincronización por estados con Microsoft Graph, en **modo simulación**.
+- **Validación IDS** (buildingSMART IDS 1.0): comprueba cada modelo contra los requisitos de información del cliente (`public/data/cde/BCN01-requisitos.ids`). Pinta en 3D lo que cumple y lo que no, y un modelo IFC no se puede publicar sin pasarla.
+- **Colisiones** entre arquitectura e instalaciones, con los GlobalId de los dos elementos y paso directo a tema BCF.
+- **Certificados:** huella SHA-256 de cada versión publicada, con código de verificación y un verificador de ficheros en el navegador.
+- **Árbol del modelo** por disciplina, planta y familia, y **planos de corte** horizontal y vertical.
 
 El CDE publica sus modelos publicados en `/cde/publicados.json`. El gemelo los lee y los dibuja en el mapa (capa *Edificios BIM (CDE)*), con un enlace de vuelta al CDE.
 

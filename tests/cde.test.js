@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import { applyAction, bcfFiles, canDo, checkName, crc32, lecturaSensor, planPreventivo, spPlan, uuidFrom, zip } from '../shared/cde.js'
 
-const doc0 = { id: 'd1', nombre: 'BCN01-CAB-ZZ-XX-M3-A-0001.ifc', estado: 'WIP', idoneidad: 'S0', revision: 'P01.01', historial: [] }
+const doc0 = { id: 'd1', nombre: 'BCN01-CAB-ZZ-XX-M3-A-0001.ifc', estado: 'WIP', idoneidad: 'S0', revision: 'P01.01', historial: [], ids: { ok: true, malos: 0 } }
 
 describe('nomenclatura UNE-EN ISO 19650-2', () => {
   it('acepta un nombre conforme y separa sus campos', () => {
@@ -32,6 +32,13 @@ describe('estados, idoneidad y revisiones', () => {
     expect(d).toMatchObject({ estado: 'WIP', idoneidad: 'S0', revision: 'P02.01' })
     const e = applyAction(applyAction(applyAction(d, 'compartir', { rol: 'autor', idoneidad: 'S3' }).doc, 'pedirAutorizacion', { rol: 'coordinador' }).doc, 'publicar', { rol: 'cliente' }).doc
     expect(e.revision).toBe('C02')
+  })
+  it('un modelo IFC no se publica sin pasar la validación IDS', () => {
+    const s4 = { ...doc0, estado: 'SHARED', idoneidad: 'S4', revision: 'P01' }
+    expect(canDo({ ...s4, ids: null }, 'publicar', 'cliente')).toMatch(/validar el modelo con el IDS/)
+    expect(canDo({ ...s4, ids: { ok: false, malos: 2 } }, 'publicar', 'cliente')).toMatch(/2 elemento/)
+    expect(canDo(s4, 'publicar', 'cliente')).toBeNull()
+    expect(canDo({ ...s4, nombre: 'BCN01-CAB-ZZ-XX-SP-A-0001.pdf', ids: null }, 'publicar', 'cliente')).toBeNull()
   })
   it('cada rol solo puede hacer lo suyo y no se comparte un nombre que no cumple', () => {
     expect(canDo(doc0, 'compartir', 'cliente')).toMatch(/autor/)

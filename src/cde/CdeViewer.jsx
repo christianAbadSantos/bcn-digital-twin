@@ -6,7 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 const SEL = new THREE.Color('#ffd400')
 
-export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSelect, onCargado }) {
+export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSelect, onCargado, ocultos, corte }) {
   const host = useRef(null)
   const ctx = useRef(null)
   const [estado, setEstado] = useState('Cargando modelos…')
@@ -15,6 +15,7 @@ export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSele
   useEffect(() => {
     const el = host.current
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
+    renderer.localClippingEnabled = true // planos de corte
     renderer.setPixelRatio(Math.min(2, devicePixelRatio))
     el.appendChild(renderer.domElement)
     const scene = new THREE.Scene()
@@ -53,7 +54,9 @@ export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSele
     }
     renderer.domElement.addEventListener('pointerdown', onDown)
     renderer.domElement.addEventListener('pointerup', onUp)
-    ctx.current = { scene, camera, controls, root, meshes, renderer, onSelect }
+    // planos de corte: uno horizontal (deja ver una planta por dentro) y uno vertical (sección)
+    const planos = { h: new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6), v: new THREE.Plane(new THREE.Vector3(-1, 0, 0), 1e6) }
+    ctx.current = { scene, camera, controls, root, meshes, renderer, onSelect, planos, caja: new THREE.Box3() }
     return () => { cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); el.removeChild(renderer.domElement) }
   }, [])
   useEffect(() => { if (ctx.current) ctx.current.onSelect = onSelect }, [onSelect])
@@ -71,12 +74,13 @@ export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSele
       const r = e.data
       if (!r.ok) { setEstado(`No se pudo abrir ${r.file}: ${r.error}`); return }
       for (const it of r.elementos) {
+        if (!it.index.length) continue // espacios: sin malla
         const g = new THREE.BufferGeometry()
         g.setAttribute('position', new THREE.BufferAttribute(it.position, 3))
         g.setAttribute('normal', new THREE.BufferAttribute(it.normal, 3))
         g.setIndex(new THREE.BufferAttribute(it.index, 1))
         const [cr, cg, cb, a] = it.color
-        const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(cr, cg, cb), roughness: 0.75, metalness: 0.05, transparent: a < 0.99, opacity: a, side: THREE.DoubleSide })
+        const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(cr, cg, cb), roughness: 0.75, metalness: 0.05, transparent: a < 0.99, opacity: a, side: THREE.DoubleSide, clippingPlanes: [c.planos.h, c.planos.v] })
         const mesh = new THREE.Mesh(g, mat)
         const { position, normal, index, ...meta } = it
         mesh.userData = { ...meta, file: r.file, base: mat.color.clone(), baseOp: a }
@@ -86,6 +90,7 @@ export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSele
       }
       total += r.elementos.length
       if (--pend === 0) {
+        c.caja.copy(box)
         const ctr = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3())
         c.controls.target.copy(ctr)
         c.camera.position.set(ctr.x + size.x * 0.9, ctr.y + size.y * 1.6 + 8, ctr.z + size.z * 1.4 + 6)
@@ -105,7 +110,7 @@ export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSele
     const show = new Map(modelos.map((m) => [m.file, m.visible]))
     for (const [guid, m] of c.meshes) {
       const u = m.userData
-      m.visible = show.get(u.file) !== false
+      m.visible = show.get(u.file) !== false && !ocultos?.has(guid)
       const mk = marcas?.[guid]
       let col = u.base, op = u.baseOp
       if (colorPor !== 'material') {
@@ -119,7 +124,16 @@ export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSele
       m.material.depthWrite = op >= 0.99
       m.material.emissive = seleccion === guid ? new THREE.Color('#5a4a00') : new THREE.Color('#000000')
     }
-  }, [vis, colorPor, marcas, seleccion]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [vis, colorPor, marcas, seleccion, ocultos]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // planos de corte (corte.h y corte.v entre 0 y 1 dentro de la caja del modelo; null = sin corte)
+  useEffect(() => {
+    const c = ctx.current
+    const b = c.caja
+    if (b.isEmpty()) return
+    c.planos.h.constant = corte?.h != null ? b.min.y + (b.max.y - b.min.y) * corte.h : 1e6
+    c.planos.v.constant = corte?.v != null ? b.min.x + (b.max.x - b.min.x) * corte.v : 1e6
+  }, [corte?.h, corte?.v, estado]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // centrar en el elemento seleccionado
   useEffect(() => {

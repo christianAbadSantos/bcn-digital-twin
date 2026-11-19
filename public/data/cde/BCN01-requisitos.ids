@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Requisitos de información del proyecto BCN01 (ejemplo) en IDS 1.0 de buildingSMART.
+     Lo que el cliente exige que tenga cada modelo IFC antes de poder publicarlo. -->
+<ids:ids xmlns:ids="http://standards.buildingsmart.org/IDS" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://standards.buildingsmart.org/IDS http://standards.buildingsmart.org/IDS/1.0/ids.xsd">
+  <ids:info>
+    <ids:title>BCN01 · Requisitos de información del cliente</ids:title>
+    <ids:version>1.0</ids:version>
+    <ids:author>bim@ajuntament-ejemplo.cat</ids:author>
+    <ids:date>2026-11-19</ids:date>
+    <ids:purpose>Entrega de modelos de arquitectura e instalaciones para obra y mantenimiento</ids:purpose>
+  </ids:info>
+  <ids:specifications>
+    <ids:specification name="Muros: código y resistencia al fuego" ifcVersion="IFC4" description="Todo muro lleva su código MU-nnn, si es de fachada y una resistencia al fuego EI 60, EI 90 o EI 120 (CTE DB-SI).">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity><ids:name><ids:simpleValue>IFCWALL</ids:simpleValue></ids:name></ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:attribute cardinality="required">
+          <ids:name><ids:simpleValue>Name</ids:simpleValue></ids:name>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="MU-[0-9]{3}"/></xs:restriction></ids:value>
+        </ids:attribute>
+        <ids:property dataType="IFCBOOLEAN" cardinality="required">
+          <ids:propertySet><ids:simpleValue>Pset_WallCommon</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>IsExternal</ids:simpleValue></ids:baseName>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>Pset_WallCommon</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>FireRating</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:enumeration value="EI 60"/><xs:enumeration value="EI 90"/><xs:enumeration value="EI 120"/></xs:restriction></ids:value>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="Puertas: resistencia al fuego" ifcVersion="IFC4" description="Las puertas exteriores declaran su resistencia al fuego EI2 con autocierre.">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity><ids:name><ids:simpleValue>IFCDOOR</ids:simpleValue></ids:name></ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>Pset_DoorCommon</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>FireRating</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="EI2 (60|90|120)-C[0-9]"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCBOOLEAN" cardinality="required">
+          <ids:propertySet><ids:simpleValue>Pset_DoorCommon</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>IsExternal</ids:simpleValue></ids:baseName>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="Espacios: código y superficie" ifcVersion="IFC4" description="Cada espacio lleva su código EP-nnn y su superficie útil para el inventario municipal.">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity><ids:name><ids:simpleValue>IFCSPACE</ids:simpleValue></ids:name></ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:attribute cardinality="required">
+          <ids:name><ids:simpleValue>Name</ids:simpleValue></ids:name>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="EP-[0-9]{3}"/></xs:restriction></ids:value>
+        </ids:attribute>
+        <ids:property dataType="IFCAREAMEASURE" cardinality="required">
+          <ids:propertySet><ids:simpleValue>Pset_SpaceCommon</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>GrossPlannedArea</ids:simpleValue></ids:baseName>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="Activos de instalaciones: datos para el GMAO" ifcVersion="IFC4" description="Equipos, conductos y tuberías llevan su código de activo, fabricante y frecuencia de mantenimiento preventivo.">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity><ids:name><xs:restriction base="xs:string"><xs:enumeration value="IFCPUMP"/><xs:enumeration value="IFCUNITARYEQUIPMENT"/><xs:enumeration value="IFCELECTRICDISTRIBUTIONBOARD"/><xs:enumeration value="IFCDUCTSEGMENT"/><xs:enumeration value="IFCPIPESEGMENT"/></xs:restriction></ids:name></ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property dataType="IFCIDENTIFIER" cardinality="required">
+          <ids:propertySet><ids:simpleValue>Pset_BCN_GMAO</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>CodigoActivo</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="BCN01-[A-Z]{2}-[0-9]{3}"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>Pset_BCN_GMAO</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>FrecuenciaPreventivo</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:enumeration value="Mensual"/><xs:enumeration value="Trimestral"/><xs:enumeration value="Semestral"/><xs:enumeration value="Anual"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>Pset_ManufacturerTypeInformation</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>Manufacturer</ids:simpleValue></ids:baseName>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="Sensores: enlace con la plataforma de datos" ifcVersion="IFC4" description="Cada sensor lleva el identificador con el que publica sus lecturas.">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity><ids:name><ids:simpleValue>IFCSENSOR</ids:simpleValue></ids:name></ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property dataType="IFCIDENTIFIER" cardinality="required">
+          <ids:propertySet><ids:simpleValue>Pset_BCN_Sensor</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>IdSensor</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="bib-santantoni-[a-z0-9-]+"/></xs:restriction></ids:value>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+  </ids:specifications>
+</ids:ids>

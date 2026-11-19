@@ -2,6 +2,7 @@
 // Demo: se guarda en este navegador (localStorage). Los modelos IFC de ejemplo están en /data/cde/.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ACCIONES, ROLES, applyAction, checkName, lecturaSensor, planPreventivo, spPlan } from '../../shared/cde.js'
+import { certificado, sha256Hex, verificar } from '../../shared/cert.js'
 
 const KEY = 'bcn-cde.v1'
 const BASE = '/data/cde/'
@@ -21,7 +22,8 @@ function seed() {
   const mk = (id, nombre, titulo, tamano, url) => ({ id, nombre, titulo, estado: 'WIP', idoneidad: 'S0', revision: 'P01.01', tamano, url: url ? BASE + nombre : null, subido: t(), autor: ROLES.autor.quien, historial: [] })
   const run = (d, pasos) => pasos.reduce((x, [acc, o]) => applyAction(x, acc, { ...o, ahora: t() }).doc, d)
   const docs = [
-    run(mk('d1', 'BCN01-CAB-ZZ-XX-M3-A-0001.ifc', 'Modelo de arquitectura', 51000, true), [['compartir', { rol: 'autor', idoneidad: 'S1' }], ['pedirAutorizacion', { rol: 'coordinador' }], ['publicar', { rol: 'cliente' }]]),
+    // el modelo de arquitectura se validó y publicó con la versión anterior del IDS del cliente
+    run({ ...mk('d1', 'BCN01-CAB-ZZ-XX-M3-A-0001.ifc', 'Modelo de arquitectura', 51000, true), ids: { ok: true, total: 17, malos: 0, t: t(), titulo: 'BCN01 · Requisitos (versión 0.9)' } }, [['compartir', { rol: 'autor', idoneidad: 'S1' }], ['pedirAutorizacion', { rol: 'coordinador' }], ['publicar', { rol: 'cliente' }]]),
     run(mk('d2', 'BCN01-CAB-ZZ-XX-M3-M-0001.ifc', 'Modelo de instalaciones', 15000, true), [['compartir', { rol: 'autor', idoneidad: 'S3' }]]),
     run(mk('d3', 'BCN01-CAB-ZZ-XX-SP-A-0001.pdf', 'Pliego de condiciones técnicas', 820000), [['compartir', { rol: 'autor', idoneidad: 'S2' }]]),
     { ...mk('d4', 'BCN01-CAB-ZZ-00-DR-A-1001.pdf', 'Plano de planta baja', 1240000), revision: 'P01.02' },
@@ -33,10 +35,10 @@ function seed() {
     { id: 'DEC-002', titulo: 'Reforzar el apoyo de la climatizadora en cubierta', tipo: 'Consulta (RFI)', estado: 'En curso', prioridad: 'Normal', ref: 'CL-001', modelo: 'BCN01-CAB-ZZ-XX-M3-M-0001.ifc', descripcion: 'El peso de la UTA (≈ 950 kg) supera la bancada prevista. Estructura confirma refuerzo con perfiles HEB.', autor: 'Instaladora', asignada: 'Estructura', creada: t(), comentarios: [] },
     { id: 'DEC-003', titulo: 'Cambiar el vidrio de la fachada sur a control solar', tipo: 'Decisión de obra', estado: 'Resuelta', prioridad: 'Normal', ref: 'VE-00S2', modelo: 'BCN01-CAB-ZZ-XX-M3-A-0001.ifc', descripcion: 'Por el sobrecalentamiento previsto en la sala de lectura. Aprobado por la propiedad.', autor: 'Propiedad', asignada: ROLES.autor.quien, creada: t(), comentarios: [{ t: t(), quien: 'Cliente', texto: 'Aprobado. Coste dentro de imprevistos.' }] },
   ]
-  return { v: 1, docs, decisiones, ots: [], correctivos: [], sp: { cfg: { sitio: 'https://ayuntamiento-ejemplo.sharepoint.com/sites/BCN01', biblioteca: 'Documentos CDE' }, log: [] }, actividad: [{ t: t(), quien: PROYECTO.creadoPor, txt: `Proyecto ${PROYECTO.codigo} creado` }], rol: 'autor' }
+  return { v: 1, docs, decisiones, ots: [], correctivos: [], certs: [], sp: { cfg: { sitio: 'https://ayuntamiento-ejemplo.sharepoint.com/sites/BCN01', biblioteca: 'Documentos CDE' }, log: [] }, actividad: [{ t: t(), quien: PROYECTO.creadoPor, txt: `Proyecto ${PROYECTO.codigo} creado` }], rol: 'autor' }
 }
 
-const load = () => { try { const j = JSON.parse(localStorage.getItem(KEY)); if (j?.v === 1) return j } catch { /* sin almacenamiento */ } return seed() }
+const load = () => { try { const j = JSON.parse(localStorage.getItem(KEY)); if (j?.v === 1) return { certs: [], ...j } } catch { /* sin almacenamiento */ } return seed() }
 
 export function useCde(active) {
   const [st, setSt] = useState(load)
@@ -73,6 +75,27 @@ export function useCde(active) {
     return c
   }, [])
   const renombrar = useCallback((id, nombre) => setSt((s) => log({ ...s, docs: s.docs.map((d) => (d.id === id ? { ...d, nombre } : d)) }, `Renombrado a ${nombre}`)), [])
+
+  // ---- validación IDS: resultado guardado en el contenedor (decide si se puede publicar)
+  const setIds = useCallback((id, r, titulo) => setSt((s) => log({ ...s, docs: s.docs.map((d) => (d.id === id ? { ...d, ids: { ok: r.ok, total: r.total, malos: r.malos, t: ahora(), titulo } } : d)) }, `Validación IDS de ${s.docs.find((d) => d.id === id)?.nombre}: ${r.ok ? 'cumple' : `${r.malos} elemento(s) con fallos`} (${r.total} comprobados)`)), [])
+
+  // ---- certificados: huella SHA-256 de cada versión publicada con fichero
+  const enCurso = useRef(new Set())
+  useEffect(() => {
+    if (!active) return
+    for (const d of st.docs) {
+      if (d.estado !== 'PUBLISHED' || !d.url || d.local) continue
+      const k = `${d.nombre}@${d.revision}`
+      if ((st.certs || []).some((c) => `${c.nombre}@${c.revision}` === k) || enCurso.current.has(k)) continue
+      enCurso.current.add(k)
+      const pub = d.historial.find((h) => h.accion === 'publicar')
+      fetch(d.url).then((r) => r.arrayBuffer()).then((b) => sha256Hex(b)).then((hash) => {
+        const c = certificado({ hash, nombre: d.nombre, revision: d.revision, idoneidad: d.idoneidad, firmante: pub?.quien || ROLES.cliente.quien, proyecto: PROYECTO.codigo, t: pub?.t })
+        setSt((s) => ((s.certs || []).some((x) => x.hash === hash && x.revision === d.revision) ? s : log({ ...s, certs: [c, ...(s.certs || [])] }, `Certificado ${c.codigo} emitido para ${d.nombre} ${d.revision}`, 'Sistema (huella SHA-256)')))
+      }).catch(() => enCurso.current.delete(k))
+    }
+  }, [active, st.docs]) // eslint-disable-line react-hooks/exhaustive-deps
+  const comprobar = useCallback(async (file) => verificar(await file.arrayBuffer(), st.certs || []), [st.certs])
 
   // ---- decisiones de obra
   const decisiones = useMemo(() => st.decisiones.map((d) => ({ ...d, guid: d.guid || byCode.get(d.ref)?.guid || null, elemento: byCode.get(d.ref)?.nombre || d.ref })), [st.decisiones, byCode])
@@ -113,7 +136,7 @@ export function useCde(active) {
 
   return {
     ...st, indice, byCode, byGuid, decisiones, activos, preventivo, sensores, plan,
-    setRol: (rol) => setSt((s) => ({ ...s, rol })), act, subir, renombrar, addDecision, updDecision, comentar, correctivo, cerrarOT, spSync, spCfg,
+    setRol: (rol) => setSt((s) => ({ ...s, rol })), act, setIds, comprobar, certs: st.certs || [], subir, renombrar, addDecision, updDecision, comentar, correctivo, cerrarOT, spSync, spCfg,
     reset: () => { blobs.current.clear(); setSt(seed()) },
   }
 }

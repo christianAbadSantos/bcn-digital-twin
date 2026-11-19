@@ -357,6 +357,22 @@
   },
   {
    "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "CD-001",
+   "guid": "2EtX2GYxGZOoBW_DEZN5KQ",
+   "entidad": "IFCDUCTSEGMENT",
+   "nombre": "Conducto de impulsión de la sala de lectura",
+   "nivel": "01"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
+   "codigo": "TU-001",
+   "guid": "1QmM7u4HBpNNlSY1mlM1xy",
+   "entidad": "IFCPIPESEGMENT",
+   "nombre": "Bajante de pluviales de cubierta",
+   "nivel": "00"
+  },
+  {
+   "modelo": "BCN01-CAB-ZZ-XX-M3-M-0001.ifc",
    "codigo": "SE-001",
    "guid": "15jj29Exv1A5qAEMISwmao",
    "entidad": "IFCSENSOR",

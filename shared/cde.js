@@ -96,6 +96,8 @@ export function canDo(doc, accion, rol) {
   if (doc.estado !== A.de) return `El contenedor está ${ESTADOS[doc.estado].nom.toLowerCase()}`
   if (accion === 'compartir' && !checkName(doc.nombre).ok) return 'El nombre no cumple la nomenclatura ISO 19650'
   if (accion === 'publicar' && doc.idoneidad !== 'S4') return 'Antes hay que pedir la autorización (idoneidad S4)'
+  // un modelo IFC solo se publica si cumple los requisitos de información del cliente (IDS)
+  if (accion === 'publicar' && /\.ifc$/i.test(doc.nombre) && !doc.ids?.ok) return doc.ids ? `No pasa la validación IDS (${doc.ids.malos} elemento(s) con fallos)` : 'Falta validar el modelo con el IDS del cliente'
   return null
 }
 

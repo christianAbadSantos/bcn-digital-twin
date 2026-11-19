@@ -76,13 +76,19 @@ self.onmessage = async (e) => {
       }
     })
 
+    // espacios: no tienen malla en web-ifc, pero sí datos que validar (IDS) y mostrar en el árbol
+    const esp = ifc.GetLineIDsWithType(m, W.IFCSPACE)
+    for (let i = 0; i < esp.size(); i++) if (!els.has(esp.get(i))) els.set(esp.get(i), { expressID: esp.get(i), pos: [], nor: [], idx: [], color: null })
     const out = []
     for (const el of els.values()) {
+      // caja que envuelve el elemento (para colisiones y para encuadrar)
+      const bmin = [Infinity, Infinity, Infinity], bmax = [-Infinity, -Infinity, -Infinity]
+      for (let i = 0; i < el.pos.length; i += 3) for (let k = 0; k < 3; k++) { if (el.pos[i + k] < bmin[k]) bmin[k] = el.pos[i + k]; if (el.pos[i + k] > bmax[k]) bmax[k] = el.pos[i + k] }
       const line = ifc.GetLine(m, el.expressID)
       out.push({
         expressID: el.expressID, guid: val(line.GlobalId), clase: CODE.get(line.type) || ifc.GetNameFromTypeCode?.(line.type) || String(line.type),
         nombre: txt(line.Name), descripcion: txt(line.Description), tag: txt(line.Tag), planta: planta.get(el.expressID) || '',
-        psets: psets.get(el.expressID) || {}, color: el.color || [0.8, 0.8, 0.8, 1],
+        psets: psets.get(el.expressID) || {}, color: el.color || [0.8, 0.8, 0.8, 1], bbox: el.pos.length ? [bmin, bmax] : null,
         position: new Float32Array(el.pos), normal: new Float32Array(el.nor), index: new Uint32Array(el.idx),
       })
     }

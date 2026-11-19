@@ -129,3 +129,28 @@
 .cde-brand .btn { background: transparent; color: #fff; border-color: rgba(255,255,255,.3); text-decoration: none; font-size: 13px; }
 .cde-logo { width: 22px; height: 22px; border-radius: 6px; background: #184f95 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M9 10h14M9 16h14M9 22h9' stroke='%23fff' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E") center/18px no-repeat; }
 @media (max-width: 700px) { .cde-brand small { display: none; } .cde-brand .btn { margin-left: auto; } }
+
+/* control de calidad */
+.cde-split.tres { grid-template-columns: 240px 1fr 340px; }
+.cde-arbol { background: var(--card); border-right: 1px solid var(--line); padding: 12px; overflow: auto; font-size: 12.5px; }
+.cde-arbol .nodo { padding-left: 10px; }
+.cde-arbol > .nodo { padding-left: 0; margin-top: 8px; }
+.cde-arbol label { display: flex; align-items: center; gap: 5px; padding: 2px 0; }
+.cde-arbol label small { margin-left: auto; color: var(--mut); }
+.cde-arbol .link { color: var(--txt); font-weight: 600; }
+.cde-arbol .hoja { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 3px 0 3px 24px; cursor: pointer; color: var(--mut); font: inherit; font-size: 12px; border-radius: 4px; }
+.cde-arbol .hoja.on, .cde-arbol .hoja:hover { background: color-mix(in srgb, var(--acc) 12%, transparent); color: var(--txt); }
+.cde-vbar .corte { display: flex; align-items: center; gap: 6px; color: var(--mut); }
+.cde-vbar .corte input { width: 110px; }
+.cde-ids { display: grid; gap: 4px; border-radius: 10px; padding: 12px 14px; border: 1px solid; }
+.cde-ids.ok { background: color-mix(in srgb, var(--ok) 10%, transparent); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.cde-ids.bad { background: color-mix(in srgb, var(--bad) 8%, transparent); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
+.cde-ids b { font-size: 15px; }
+.cde-spec { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; }
+.cde-spec header { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.cde-reqs { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.cde-fallo { background: color-mix(in srgb, var(--bad) 7%, transparent); border-radius: 6px; padding: 6px 9px; font-size: 12.5px; }
+.cde-fallo small { display: block; color: var(--bad); }
+.cde-verif { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; }
+.cde-t td.hash { word-break: break-all; max-width: 280px; }
+@media (max-width: 1100px) { .cde-split.tres { grid-template-columns: 1fr 340px; } .cde-arbol { display: none; } }

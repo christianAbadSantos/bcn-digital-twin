@@ -77,7 +77,7 @@ function model({ file, role, discipline, description }) {
   }
   style('muro', [0.89, 0.86, 0.8]); style('muroInt', [0.95, 0.94, 0.92]); style('forjado', [0.62, 0.64, 0.67]); style('pilar', [0.55, 0.57, 0.6])
   style('vidrio', [0.45, 0.68, 0.86], 0.55); style('puerta', [0.55, 0.38, 0.24]); style('cubierta', [0.38, 0.42, 0.46]); style('espacio', [0.3, 0.6, 0.95], 0.85)
-  style('equipo', [0.85, 0.45, 0.15]); style('bomba', [0.2, 0.5, 0.85]); style('cuadro', [0.25, 0.25, 0.3]); style('sensor', [0.9, 0.15, 0.2])
+  style('equipo', [0.85, 0.45, 0.15]); style('bomba', [0.2, 0.5, 0.85]); style('cuadro', [0.25, 0.25, 0.3]); style('sensor', [0.9, 0.15, 0.2]); style('conducto', [0.7, 0.74, 0.78]); style('tuberia', [0.55, 0.35, 0.75])
 
   // caja: rectángulo w×l (centrado) extruido h, en (x, y, z) del nivel y girado rot grados en planta
   function box(storeyPl, x, y, z, w, l, h, rot, styleKey) {
@@ -175,6 +175,18 @@ function model({ file, role, discipline, description }) {
       const id = el(st, a.ent, a.code, a.code, a.nom, box(st.pl, a.x, a.y, a.z, a.w, a.l, a.h, 0, a.sty), `,${a.type}`)
       pset(id, 'Pset_ManufacturerTypeInformation', [prop('Manufacturer', L_(a.fab)), prop('ModelLabel', L_(a.mod))], a.code)
       pset(id, 'Pset_BCN_GMAO', [prop('CodigoActivo', I_(`BCN01-${a.code}`)), prop('FrecuenciaPreventivo', L_(a.freq)), prop('Criticidad', L_(a.crit)), prop('Instalado', L_('2026-03-15'))], a.code)
+    }
+    // conducto de ventilación y bajante de pluviales: atraviesan un tabique y un forjado sin hueco previsto
+    // (son las colisiones que tiene que encontrar la coordinación entre arquitectura e instalaciones)
+    const redes = [
+      { code: 'CD-001', ent: 'IFCDUCTSEGMENT', type: '.RIGIDSEGMENT.', st: 1, x: 4, y: 1.2, z: 2.7, w: 10, l: 0.6, h: 0.4, nom: 'Conducto de impulsión de la sala de lectura', freq: 'Anual' },
+      { code: 'TU-001', ent: 'IFCPIPESEGMENT', type: '.RIGIDSEGMENT.', st: 0, x: 9.6, y: 5.2, z: 0.3, w: 0.16, l: 0.16, h: 4.6, nom: 'Bajante de pluviales de cubierta', freq: 'Anual' },
+    ]
+    for (const r of redes) {
+      const st = storeys[r.st]
+      const id = el(st, r.ent, r.code, r.code, r.nom, box(st.pl, r.x, r.y, r.z, r.w, r.l, r.h, 0, r.code.startsWith('CD') ? 'conducto' : 'tuberia'), `,${r.type}`)
+      pset(id, 'Pset_ManufacturerTypeInformation', [prop('Manufacturer', L_('Fabricante de ejemplo')), prop('ModelLabel', L_(r.code.startsWith('CD') ? 'Chapa galvanizada 600×400' : 'PVC Ø160'))], r.code)
+      pset(id, 'Pset_BCN_GMAO', [prop('CodigoActivo', I_(`BCN01-${r.code}`)), prop('FrecuenciaPreventivo', L_(r.freq)), prop('Criticidad', L_('Baja'))], r.code)
     }
     for (const s of sensors) {
       const st = storeys[s.st]

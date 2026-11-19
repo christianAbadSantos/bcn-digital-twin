@@ -3,12 +3,15 @@
 import React, { Suspense, lazy, useMemo, useState } from 'react'
 import { ACCIONES, ESTADOS, IDONEIDAD, ROLES, TIPOS, ROLES_DOC, ESTADOS_DEC, TIPOS_DEC, SP_CARPETAS, bcfFiles, canDo, checkName, zip } from '../../shared/cde.js'
 import { PROYECTO, useCde } from './useCde.js'
+import { useModelMeta } from './useModelMeta.js'
+import { Arbol, Certificados, Colisiones, Validacion, useIds } from './Calidad.jsx'
+import { detectClashes } from '../../shared/clash.js'
 import './cde.css'
 
 const CdeViewer = lazy(() => import('./CdeViewer.jsx'))
 const CdeMap = lazy(() => import('./CdeMap.jsx'))
 
-const TABS = [['docs', 'Documentos'], ['modelo', 'Modelo 3D'], ['dec', 'Decisiones de obra'], ['gmao', 'Mantenimiento'], ['mapa', 'Mapa GIS'], ['sp', 'SharePoint'], ['log', 'Actividad'], ['proyecto', 'Proyecto']]
+const TABS = [['docs', 'Documentos'], ['modelo', 'Modelo 3D'], ['ids', 'Validación IDS'], ['col', 'Colisiones'], ['dec', 'Decisiones de obra'], ['gmao', 'Mantenimiento'], ['certs', 'Certificados'], ['mapa', 'Mapa GIS'], ['sp', 'SharePoint'], ['log', 'Actividad'], ['proyecto', 'Proyecto']]
 const fecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—')
 const kb = (b) => (b > 1e6 ? `${(b / 1e6).toFixed(1).replace('.', ',')} MB` : `${Math.round(b / 1000)} kB`)
 const Estado = ({ e }) => <span className="cde-est" style={{ '--c': ESTADOS[e].color }}>{ESTADOS[e].nom}</span>
@@ -21,20 +24,29 @@ export default function Cde({ onGemelo }) {
   const [sel, setSel] = useState(null) // guid seleccionado en el visor
   const [elems, setElems] = useState([])
   const [colorPor, setColorPor] = useState('material')
-  const [ocultos, setOcultos] = useState({})
+  const [ocultos, setOcultos] = useState({}) // modelos ocultos
+  const [ocultosEl, setOcultosEl] = useState(() => new Set()) // elementos ocultos desde el árbol
+  const [corte, setCorte] = useState({ h: null, v: null })
+  const [idsRes, setIdsRes] = useState(null)
+  const ids = useIds()
   const [msg, setMsg] = useState(null)
   const flash = (m) => { setMsg(m); setTimeout(() => setMsg(null), 4000) }
 
   const modelos = useMemo(() => cde.docs.filter((d) => d.url && d.estado !== 'ARCHIVED').map((d) => ({ file: d.nombre, url: d.url, rev: d.revision, estado: d.estado, visible: !ocultos[d.nombre] })), [cde.docs, ocultos])
-  const elSel = elems.find((e) => e.guid === sel) || null
+  const meta = useModelMeta(modelos)
+  const metaEls = useMemo(() => Object.values(meta).flatMap((m) => m.elementos || []), [meta])
+  const elSel = elems.find((e) => e.guid === sel) || metaEls.find((e) => e.guid === sel) || null
+  const choques = useMemo(() => (Object.keys(meta).length >= 2 ? detectClashes(metaEls) : []), [meta, metaEls])
   const marcas = useMemo(() => {
     const m = {}
     if (colorPor === 'decisiones') for (const d of cde.decisiones) if (d.guid) m[d.guid] = COL_DEC[d.estado]
     if (colorPor === 'gmao') { for (const a of cde.activos) m[a.guid] = a.criticidad === 'Alta' ? '#ff9f1c' : '#34c77b'; for (const o of cde.correctivos || []) if (o.estado !== 'Cerrada' && o.guid) m[o.guid] = '#ff4d5e' }
     if (colorPor === 'sensores') for (const s of cde.sensores) m[s.guid] = s.alerta ? '#ff4d5e' : '#34c77b'
+    if (colorPor === 'ids' && idsRes) { for (const g of idsRes.okGuid) m[g] = '#34c77b'; for (const g of Object.keys(idsRes.porGuid)) m[g] = '#ff4d5e' }
+    if (colorPor === 'colisiones') for (const c of choques) { m[c.guidA] = '#ff9f1c'; m[c.guidB] = '#ff4d5e' }
     return m
-  }, [colorPor, cde.decisiones, cde.activos, cde.correctivos, cde.sensores])
-  const verEnModelo = (guid) => { setSel(guid); setTab('modelo') }
+  }, [colorPor, cde.decisiones, cde.activos, cde.correctivos, cde.sensores, idsRes, choques])
+  const verEnModelo = (guid, choque) => { setSel(guid); if (choque) setColorPor('colisiones'); setTab('modelo') }
 
   return (
     <div className="cde">
@@ -56,20 +68,27 @@ export default function Cde({ onGemelo }) {
       <div className="cde-body">
         {tab === 'docs' && <Documentos cde={cde} flash={flash} onVer={(d) => { setOcultos({}); setTab('modelo') }} />}
         {tab === 'modelo' && (
-          <div className="cde-split">
+          <div className="cde-split tres">
+            <Arbol meta={meta} ocultos={ocultosEl} setOcultos={setOcultosEl} sel={sel} onSel={setSel} />
             <div className="cde-vwrap">
               <div className="cde-vbar">
                 {modelos.map((m) => <label key={m.file} className="chk"><input type="checkbox" checked={m.visible} onChange={() => setOcultos((o) => ({ ...o, [m.file]: !o[m.file] }))} />{checkName(m.file).partes.rol === 'M' ? 'Instalaciones' : 'Arquitectura'} <small>{m.rev} · {ESTADOS[m.estado].nom}</small></label>)}
-                <label>Colorear por <select value={colorPor} onChange={(e) => setColorPor(e.target.value)}><option value="material">Material</option><option value="decisiones">Decisiones de obra</option><option value="gmao">Mantenimiento</option><option value="sensores">Sensores en tiempo real</option></select></label>
+                <label>Colorear por <select value={colorPor} onChange={(e) => setColorPor(e.target.value)}><option value="material">Material</option><option value="decisiones">Decisiones de obra</option><option value="gmao">Mantenimiento</option><option value="sensores">Sensores en tiempo real</option><option value="ids">Validación IDS</option><option value="colisiones">Colisiones</option></select></label>
+                <label className="corte">Corte horizontal <input type="range" min="0.02" max="1" step="0.01" value={corte.h ?? 1} onChange={(e) => setCorte({ ...corte, h: Number(e.target.value) >= 1 ? null : Number(e.target.value) })} /></label>
+                <label className="corte">Corte vertical <input type="range" min="0.02" max="1" step="0.01" value={corte.v ?? 1} onChange={(e) => setCorte({ ...corte, v: Number(e.target.value) >= 1 ? null : Number(e.target.value) })} /></label>
+                {(corte.h != null || corte.v != null || ocultosEl.size > 0) && <button className="btn sm" onClick={() => { setCorte({ h: null, v: null }); setOcultosEl(new Set()) }}>Quitar cortes y mostrar todo</button>}
               </div>
               <Suspense fallback={<div className="cde-msg">Cargando el visor…</div>}>
-                <CdeViewer modelos={modelos} colorPor={colorPor} marcas={marcas} seleccion={sel} onSelect={(u) => setSel(u?.guid || null)} onCargado={setElems} />
+                <CdeViewer modelos={modelos} colorPor={colorPor} marcas={marcas} seleccion={sel} onSelect={(u) => setSel(u?.guid || null)} onCargado={setElems} ocultos={ocultosEl} corte={corte} />
               </Suspense>
               {colorPor !== 'material' && <Leyenda modo={colorPor} />}
             </div>
             <Elemento cde={cde} el={elSel} onClose={() => setSel(null)} flash={flash} />
           </div>
         )}
+        {tab === 'ids' && <Validacion cde={cde} meta={meta} ids={ids} onVer={(g, r) => { if (r) setIdsRes(r); setColorPor('ids'); verEnModelo(g) }} onColor={(r) => { setIdsRes(r); setColorPor('ids'); setTab('modelo') }} />}
+        {tab === 'col' && <Colisiones cde={cde} meta={meta} onVer={verEnModelo} />}
+        {tab === 'certs' && <Certificados cde={cde} />}
         {tab === 'dec' && <Decisiones cde={cde} onVer={verEnModelo} />}
         {tab === 'gmao' && <Gmao cde={cde} onVer={verEnModelo} />}
         {tab === 'mapa' && <Suspense fallback={<div className="cde-msg">Cargando el mapa…</div>}><CdeMap indice={cde.indice} sensores={cde.sensores} onGemelo={onGemelo} /></Suspense>}
@@ -82,7 +101,7 @@ export default function Cde({ onGemelo }) {
 }
 
 function Leyenda({ modo }) {
-  const L = { decisiones: Object.entries(COL_DEC), gmao: [['Activo crítico', '#ff9f1c'], ['Activo', '#34c77b'], ['Orden correctiva abierta', '#ff4d5e']], sensores: [['En rango', '#34c77b'], ['Alerta', '#ff4d5e']] }[modo]
+  const L = { decisiones: Object.entries(COL_DEC), ids: [['Cumple el IDS', '#34c77b'], ['No cumple', '#ff4d5e']], colisiones: [['Arquitectura en colisión', '#ff9f1c'], ['Instalación que interfiere', '#ff4d5e']], gmao: [['Activo crítico', '#ff9f1c'], ['Activo', '#34c77b'], ['Orden correctiva abierta', '#ff4d5e']], sensores: [['En rango', '#34c77b'], ['Alerta', '#ff4d5e']] }[modo]
   return <div className="cde-ley">{L.map(([n, c]) => <span key={n}><i style={{ background: c }} />{n}</span>)}</div>
 }
 
