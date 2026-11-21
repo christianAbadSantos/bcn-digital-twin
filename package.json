@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
     "preview": "vite preview",
     "trees": "node scripts/build-trees.mjs",
     "test": "vitest run"
@@ -19,6 +19,9 @@
     "@mapbox/vector-tile": "^1.3.1",
     "@react-three/drei": "^9.114.0",
     "@react-three/fiber": "^8.17.10",
+    "@thatopen/components": "^3.6.0",
+    "@thatopen/fragments": "^3.6.1",
+    "camera-controls-tho": "npm:camera-controls@^3.1.2",
     "deck.gl": "^9.0.0",
     "earcut": "^2.2.4",
     "jose": "^6.2.15",
@@ -27,7 +30,9 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.160.1",
-    "web-ifc": "^0.0.78"
+    "three-tho": "npm:three@^0.182.0",
+    "web-ifc": "^0.0.78",
+    "web-ifc-tho": "npm:web-ifc@^0.0.77"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

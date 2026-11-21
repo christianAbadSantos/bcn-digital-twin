@@ -1,152 +1,177 @@
-// Visor IFC del CDE (three.js + web-ifc en un worker). Cada elemento es una malla: se puede seleccionar,
-// ocultar por disciplina y colorear por decisiones abiertas, mantenimiento o lectura de sensores.
+// Visor IFC del CDE con That Open Components (@thatopen/components + @thatopen/fragments).
+// El IfcLoader convierte cada IFC a Fragments en el navegador (web-ifc en WebAssembly) y el FragmentsManager
+// lo pinta con su worker. Cada elemento se identifica por su GlobalId: con getLocalIdsByGuids /
+// getGuidsByLocalIds se enlaza el modelo con el IDS, las colisiones, las decisiones BCF y el GMAO.
+// (three aquí es la copia "three-tho" que pide That Open: ver vite.thatopen.js)
 import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import * as OBC from '@thatopen/components'
+import * as FRAGS from '@thatopen/fragments'
+import workerUrl from '@thatopen/fragments/worker?url'
 
-const SEL = new THREE.Color('#ffd400')
+const mat = (color, opacity = 1) => ({ color: new THREE.Color(color), renderedFaces: FRAGS.RenderedFaces.ONE, opacity, transparent: opacity < 1 })
+const SEL = mat('#ffd400')
+const GRIS = mat('#5b6270', 0.18)
 
-export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSelect, onCargado, ocultos, corte }) {
+// caja (en coordenadas del visor) del elemento con ese GlobalId, o null
+async function cajaDe(c, guid) {
+  for (const { model, g2l } of c.modelos.values()) {
+    const id = g2l.get(guid)
+    if (id != null) return model.getMergedBox([id])
+  }
+  return null
+}
+
+// colorPor: 'material' (colores del IFC), 'natural' (colores del IFC + marcas encima) o cualquier capa (gris + marcas).
+// marcas: { guid: '#color' | { color, opacity } }. onListo(api) da acceso al mundo 3D (etiquetas, encuadres).
+export default function CdeViewer({ modelos, colorPor, marcas, seleccion, onSelect, onCargado, ocultos, corte, fondo = '#0f1114', onListo }) {
   const host = useRef(null)
   const ctx = useRef(null)
-  const [estado, setEstado] = useState('Cargando modelos…')
+  const [estado, setEstado] = useState('Preparando el visor…')
+  const [cargados, setCargados] = useState(0) // sube cada vez que termina una carga, para repintar
 
-  // escena
+  // mundo de That Open: escena, renderizador, cámara, rejilla, fragments e IfcLoader
   useEffect(() => {
     const el = host.current
-    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
-    renderer.localClippingEnabled = true // planos de corte
-    renderer.setPixelRatio(Math.min(2, devicePixelRatio))
-    el.appendChild(renderer.domElement)
-    const scene = new THREE.Scene()
-    scene.background = new THREE.Color('#0f1114')
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000)
-    camera.position.set(28, 22, 30)
-    const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enableDamping = true
-    controls.target.set(0, 3, 0)
-    scene.add(new THREE.HemisphereLight('#ffffff', '#40464f', 1.1))
-    const sun = new THREE.DirectionalLight('#ffffff', 1.4)
-    sun.position.set(30, 50, 20)
-    scene.add(sun)
-    const grid = new THREE.GridHelper(80, 40, '#2b3038', '#1d2127')
-    grid.position.y = -0.31
-    scene.add(grid)
-    const root = new THREE.Group()
-    scene.add(root)
-    const meshes = new Map() // guid → mesh
-    const resize = () => { const w = el.clientWidth, h = el.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix() }
-    const ro = new ResizeObserver(resize); ro.observe(el); resize()
-    let raf
-    const loop = () => { controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop) }
-    loop()
-    // seleccionar con clic (sin arrastrar)
-    const ray = new THREE.Raycaster(), p = new THREE.Vector2()
+    const components = new OBC.Components()
+    const world = components.get(OBC.Worlds).create()
+    world.scene = new OBC.SimpleScene(components)
+    world.scene.setup()
+    world.scene.three.background = new THREE.Color(fondo)
+    world.renderer = new OBC.SimpleRenderer(components, el)
+    world.camera = new OBC.SimpleCamera(components)
+    components.init()
+    components.get(OBC.Grids).create(world)
+
+    const fragments = components.get(OBC.FragmentsManager)
+    fragments.init(workerUrl)
+    world.camera.controls.addEventListener('update', () => fragments.core.update())
+    fragments.list.onItemSet.add(({ value: model }) => {
+      model.useCamera(world.camera.three)
+      model.getClippingPlanesEvent = () => world.renderer.three.clippingPlanes // el worker descarta lo cortado
+      world.scene.three.add(model.object)
+      fragments.core.update(true)
+    })
+
+    const ifcLoader = components.get(OBC.IfcLoader)
+    const listo = ifcLoader.setup({ autoSetWasm: false, wasm: { path: new URL(`${import.meta.env.BASE_URL}cde/wasm/`, location.href).href, absolute: true } })
+
+    // seleccionar con clic (sin arrastrar) con el Raycaster de That Open
+    const caster = components.get(OBC.Raycasters).get(world)
     let down = null
     const onDown = (e) => { down = [e.clientX, e.clientY] }
-    const onUp = (e) => {
+    const onUp = async (e) => {
       if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4) return
-      const r = renderer.domElement.getBoundingClientRect()
-      p.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
-      ray.setFromCamera(p, camera)
-      const hit = ray.intersectObjects([...meshes.values()].filter((m) => m.visible), false)[0]
-      ctx.current.onSelect?.(hit ? hit.object.userData : null)
+      const r = await caster.castRay()
+      if (!r?.fragments) return ctx.current.onSelect?.(null)
+      const [guid] = await r.fragments.getGuidsByLocalIds([r.localId])
+      ctx.current.onSelect?.(guid ? { guid, file: r.fragments.modelId } : null)
     }
-    renderer.domElement.addEventListener('pointerdown', onDown)
-    renderer.domElement.addEventListener('pointerup', onUp)
-    // planos de corte: uno horizontal (deja ver una planta por dentro) y uno vertical (sección)
-    const planos = { h: new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6), v: new THREE.Plane(new THREE.Vector3(-1, 0, 0), 1e6) }
-    ctx.current = { scene, camera, controls, root, meshes, renderer, onSelect, planos, caja: new THREE.Box3() }
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); el.removeChild(renderer.domElement) }
+    el.addEventListener('pointerdown', onDown)
+    el.addEventListener('pointerup', onUp)
+
+    // planos de corte globales del renderizador (horizontal: ver una planta; vertical: sección)
+    const planos = { h: new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), v: new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0) }
+    ctx.current = { components, world, fragments, ifcLoader, listo, caster, planos, onSelect, modelos: new Map(), caja: new THREE.Box3(), cola: Promise.resolve() }
+    return () => { el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointerup', onUp); components.dispose() }
   }, [])
   useEffect(() => { if (ctx.current) ctx.current.onSelect = onSelect }, [onSelect])
 
-  // cargar los modelos (una vez por fichero)
+  // cargar los IFC (una vez por fichero): IFC → Fragments, y tabla GlobalId ↔ localId de cada modelo
   const urls = modelos.map((m) => m.url).join('|')
   useEffect(() => {
     const c = ctx.current
-    const w = new Worker(new URL('../workers/cdeIfcWorker.js', import.meta.url), { type: 'module' })
-    let pend = modelos.length, total = 0
-    const box = new THREE.Box3()
-    for (const m of [...c.meshes.values()]) { c.root.remove(m); m.geometry.dispose() }
-    c.meshes.clear()
-    w.onmessage = (e) => {
-      const r = e.data
-      if (!r.ok) { setEstado(`No se pudo abrir ${r.file}: ${r.error}`); return }
-      for (const it of r.elementos) {
-        if (!it.index.length) continue // espacios: sin malla
-        const g = new THREE.BufferGeometry()
-        g.setAttribute('position', new THREE.BufferAttribute(it.position, 3))
-        g.setAttribute('normal', new THREE.BufferAttribute(it.normal, 3))
-        g.setIndex(new THREE.BufferAttribute(it.index, 1))
-        const [cr, cg, cb, a] = it.color
-        const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(cr, cg, cb), roughness: 0.75, metalness: 0.05, transparent: a < 0.99, opacity: a, side: THREE.DoubleSide, clippingPlanes: [c.planos.h, c.planos.v] })
-        const mesh = new THREE.Mesh(g, mat)
-        const { position, normal, index, ...meta } = it
-        mesh.userData = { ...meta, file: r.file, base: mat.color.clone(), baseOp: a }
-        c.root.add(mesh)
-        c.meshes.set(it.guid, mesh)
-        g.computeBoundingBox(); box.union(g.boundingBox)
-      }
-      total += r.elementos.length
-      if (--pend === 0) {
-        c.caja.copy(box)
-        const ctr = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3())
-        c.controls.target.copy(ctr)
-        c.camera.position.set(ctr.x + size.x * 0.9, ctr.y + size.y * 1.6 + 8, ctr.z + size.z * 1.4 + 6)
+    let vivo = true
+    ;(async () => {
+      try {
+        await c.listo
+        for (const id of [...c.modelos.keys()]) await c.fragments.core.disposeModel(id)
+        c.modelos.clear()
+        const caja = new THREE.Box3()
+        for (const m of modelos) {
+          setEstado(`Convirtiendo ${m.file} a Fragments…`)
+          const buf = new Uint8Array(await (await fetch(m.url)).arrayBuffer())
+          const model = await c.ifcLoader.load(buf, false, m.file)
+          if (!vivo) return
+          const ids = await model.getItemsIdsWithGeometry()
+          const guids = await model.getGuidsByLocalIds(ids)
+          const g2l = new Map()
+          guids.forEach((g, i) => { if (g) g2l.set(g, ids[i]) })
+          c.modelos.set(m.file, { model, g2l })
+          caja.union(model.box)
+        }
+        c.caja.copy(caja)
+        const ctr = caja.getCenter(new THREE.Vector3()), size = caja.getSize(new THREE.Vector3())
+        await c.world.camera.controls.setLookAt(ctr.x + size.x * 0.9, ctr.y + size.y * 1.6 + 8, ctr.z + size.z * 1.4 + 6, ctr.x, ctr.y, ctr.z, false)
+        await c.fragments.core.update(true)
         setEstado(null)
-        onCargado?.([...c.meshes.values()].map((m) => m.userData))
-        w.terminate()
-      } else setEstado(`Cargado ${r.file} (${total} elementos)…`)
-    }
-    modelos.forEach((m, i) => w.postMessage({ id: i, url: m.url, file: m.file }))
-    return () => w.terminate()
+        setCargados((n) => n + 1)
+        onCargado?.([]) // los datos de cada elemento los da useModelMeta
+        onListo?.({ world: c.world, caja: c.caja.clone(), cajaDe: (guid) => cajaDe(c, guid) })
+      } catch (err) {
+        if (vivo) setEstado(`No se pudo abrir el modelo: ${err?.message || err}`)
+      }
+    })()
+    return () => { vivo = false }
   }, [urls]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // visibilidad, color y selección
+  // visibilidad, color por capa (IDS, colisiones, decisiones, GMAO, sensores) y selección
   const vis = modelos.map((m) => `${m.file}:${m.visible}`).join('|')
   useEffect(() => {
     const c = ctx.current
     const show = new Map(modelos.map((m) => [m.file, m.visible]))
-    for (const [guid, m] of c.meshes) {
-      const u = m.userData
-      m.visible = show.get(u.file) !== false && !ocultos?.has(guid)
-      const mk = marcas?.[guid]
-      let col = u.base, op = u.baseOp
-      if (colorPor !== 'material') {
-        col = mk ? new THREE.Color(mk) : new THREE.Color('#5b6270')
-        op = mk ? 1 : 0.18
+    const pintar = async () => {
+      for (const [file, { model, g2l }] of c.modelos) {
+        const ver = show.get(file) !== false
+        await model.setVisible(undefined, ver)
+        const ocultar = [...(ocultos || [])].map((g) => g2l.get(g)).filter((x) => x != null)
+        if (ver && ocultar.length) await model.setVisible(ocultar, false)
+        await model.resetHighlight()
+        if (colorPor !== 'material') {
+          if (colorPor !== 'natural') await model.highlight(undefined, GRIS)
+          const porColor = new Map()
+          for (const [g, col] of Object.entries(marcas || {})) {
+            const id = g2l.get(g)
+            const k = typeof col === 'string' ? col : `${col.color}@${col.opacity ?? 1}`
+            if (id != null) porColor.set(k, [...(porColor.get(k) || []), id])
+          }
+          for (const [col, ids] of porColor) { const [c0, op] = col.split('@'); await model.highlight(ids, mat(c0, op ? Number(op) : 1)) }
+        }
+        const s = seleccion && g2l.get(seleccion)
+        if (s != null) await model.highlight([s], SEL)
       }
-      if (seleccion === guid) { col = SEL; op = 1 }
-      m.material.color.copy(col)
-      m.material.opacity = op
-      m.material.transparent = op < 0.99
-      m.material.depthWrite = op >= 0.99
-      m.material.emissive = seleccion === guid ? new THREE.Color('#5a4a00') : new THREE.Color('#000000')
+      await c.fragments.core.update(true)
     }
-  }, [vis, colorPor, marcas, seleccion, ocultos]) // eslint-disable-line react-hooks/exhaustive-deps
+    c.cola = c.cola.then(pintar).catch(() => {}) // en orden, sin pisarse
+  }, [vis, colorPor, marcas, seleccion, ocultos, cargados]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // planos de corte (corte.h y corte.v entre 0 y 1 dentro de la caja del modelo; null = sin corte)
   useEffect(() => {
     const c = ctx.current
     const b = c.caja
     if (b.isEmpty()) return
-    c.planos.h.constant = corte?.h != null ? b.min.y + (b.max.y - b.min.y) * corte.h : 1e6
-    c.planos.v.constant = corte?.v != null ? b.min.x + (b.max.x - b.min.x) * corte.v : 1e6
-  }, [corte?.h, corte?.v, estado]) // eslint-disable-line react-hooks/exhaustive-deps
+    const activos = []
+    if (corte?.h != null) { c.planos.h.constant = b.min.y + (b.max.y - b.min.y) * corte.h; activos.push(c.planos.h) }
+    if (corte?.v != null) { c.planos.v.constant = b.min.x + (b.max.x - b.min.x) * corte.v; activos.push(c.planos.v) }
+    c.world.renderer.three.clippingPlanes = activos
+    c.fragments.core.update(true)
+  }, [corte?.h, corte?.v, cargados])
 
-  // centrar en el elemento seleccionado
+  // centrar la cámara en el elemento seleccionado
   useEffect(() => {
     const c = ctx.current
-    const m = seleccion && c.meshes.get(seleccion)
-    if (!m) return
-    m.geometry.computeBoundingBox()
-    c.controls.target.copy(m.geometry.boundingBox.getCenter(new THREE.Vector3()))
-  }, [seleccion])
+    if (!seleccion) return
+    for (const { model, g2l } of c.modelos.values()) {
+      const id = g2l.get(seleccion)
+      if (id == null) continue
+      model.getMergedBox([id]).then((bx) => { const p = bx.getCenter(new THREE.Vector3()); c.world.camera.controls.setTarget(p.x, p.y, p.z, true) })
+    }
+  }, [seleccion, cargados])
 
   return (
     <div className="cde-viewer" ref={host}>
       {estado && <div className="cde-msg">{estado}</div>}
+      <span className="cde-motor">That Open Components · Fragments</span>
     </div>
   )
 }

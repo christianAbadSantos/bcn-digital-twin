@@ -40,7 +40,7 @@ Aplicación propia en **[/cde/](https://bcn-digital-twin.pages.dev/cde/)**, cone
 - **Roles:** autor, coordinador BIM y cliente, cada uno con sus pasos.
 - **Nomenclatura** `Proyecto-Originador-Volumen-Nivel-Tipo-Rol-Número`, comprobada al subir cada fichero.
 - **Historial y registro de actividad** de cada contenedor.
-- **Visor IFC** propio (web-ifc + three.js): selección de elementos, GlobalId, propiedades, y colores por decisiones, mantenimiento o sensores.
+- **Visor IFC con That Open Components** (`@thatopen/components` + Fragments): el IfcLoader convierte cada IFC a Fragments en el navegador; selección por raycast, GlobalId ↔ localId, planos de corte y colores por IDS, colisiones, decisiones, mantenimiento o sensores. Usa su propia copia de three (`three-tho`, ver `vite.thatopen.js`) para no tocar el gemelo.
 - **Decisiones de obra** enlazadas a elementos del IFC por su GlobalId, exportables en **BCF 2.1**.
 - **Mantenimiento (GMAO):** activos y plan preventivo sacados del modelo, órdenes correctivas, sensores en tiempo real (simulados) y exportación CSV.
 - **GIS:** el modelo georreferenciado desde el IfcSite sobre el relieve del ICGC, comprobando la cota.
@@ -51,6 +51,17 @@ Aplicación propia en **[/cde/](https://bcn-digital-twin.pages.dev/cde/)**, cone
 - **Árbol del modelo** por disciplina, planta y familia, y **planos de corte** horizontal y vertical.
 
 El CDE publica sus modelos publicados en `/cde/publicados.json`. El gemelo los lee y los dibuja en el mapa (capa *Edificios BIM (CDE)*), con un enlace de vuelta al CDE.
+
+### Gemelo del edificio (BMS)
+
+Aplicación propia en **[/edificio/](https://bcn-digital-twin.pages.dev/edificio/)**, que se abre desde el edificio en el mapa, desde la cabecera del gemelo y desde el CDE. Es una vista de supervisión y control de las instalaciones sobre el modelo IFC del CDE, con el visor de That Open:
+
+- **Navegación** por edificio, plantas, salas y equipos, con árbol lateral, migas de pan y KPI (ocupación, energía, confort y alarmas activas).
+- **Plantas con corte** y **mapa térmico por sala**: la caja de cada `IfcSpace` da la mancha de color en el suelo, y cada sala lleva su tarjeta con temperatura, humedad y CO₂.
+- **Puntos del BMS asociados a cada elemento IFC** por su código (y de ahí a su GlobalId), con rutas ORD del estilo de Niagara 4: fancoils por sala, climatizadora (consignas, impulsión, retorno y alarmas), bombas y cuadro eléctrico.
+- **Mando**: termostato por sala (consigna y marcha/paro), consignas y marcha/paro de cada equipo, y **comando masivo** (buscar puntos, revisar, aplicar en modo Set/Fallback, Override o Auto, con resultado por punto y exportación a CSV).
+
+Los puntos son simulados (`shared/bms.js`, con tests): la sala va hacia su consigna si el fancoil está en marcha, la UTA renueva aire y parar una bomba dispara su alarma. Con un Niagara real se cambiaría la fuente por su API (oBIX o REST), manteniendo las mismas rutas.
 
 Los modelos IFC de ejemplo (un edificio ficticio en Sant Antoni) se generan con `node scripts/build-cde-ifc.mjs`. Los datos de la demo del CDE se guardan en el navegador.
 
@@ -70,7 +81,7 @@ Los modelos IFC de ejemplo (un edificio ficticio en Sant Antoni) se generan con 
                  │  Renfe GTFS-RT · DGT DATEX II · FIWARE · IFC del Port
 ```
 
-- **Frontend:** React 18, MapLibre GL, Three.js, deck.gl, web-ifc, Vite.
+- **Frontend:** React 18, MapLibre GL, Three.js, deck.gl, web-ifc, That Open Components, Vite.
 - **Backend web:** Cloudflare Pages Functions (proxies para fuentes sin CORS, caché, D1 y R2).
 - **API de residuos:** ASP.NET Core 10, EF Core (SQL Server en producción, PostgreSQL en local), panel MVC, webhook LoRaWAN y xUnit. Ver [`fcc-residus-api/`](fcc-residus-api/README.md).
 - **Calidad:** tests con Vitest (web) y xUnit (API), ejecutados en GitHub Actions en cada push.

@@ -5,6 +5,7 @@ import '../index.css'
 import Cde from './Cde.jsx'
 
 const GEMELO = import.meta.env.VITE_GEMELO_URL || '/'
+const EDIFICIO = import.meta.env.VITE_EDIFICIO_URL || '/edificio/'
 
 function CdeApp() {
   return (
@@ -12,6 +13,7 @@ function CdeApp() {
       <header className="cde-brand">
         <span className="cde-logo" aria-hidden="true" />
         <b>CDE</b><small>Entorno común de datos · UNE-EN ISO 19650</small>
+        <a className="btn" href={EDIFICIO}>Gemelo del edificio ↗</a>
         <a className="btn" href={GEMELO}>Gemelo digital de Barcelona ↗</a>
       </header>
       <Cde onGemelo={(f) => { location.href = `${GEMELO}?lon=${f.lon}&lat=${f.lat}&z=18&capa=bim` }} />

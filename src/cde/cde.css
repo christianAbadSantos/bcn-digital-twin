@@ -55,7 +55,7 @@
 .cde-vbar small { color: var(--mut); }
 .cde-viewer { position: relative; flex: 1; min-height: 0; }
 .cde-viewer canvas { display: block; width: 100% !important; height: 100% !important; }
-.cde-ley { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 12px; background: rgba(15,17,20,.85); color: #eceef2; padding: 6px 10px; border-radius: 8px; font-size: 12px; }
+.cde-ley { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 12px; background: rgba(15,17,20,.85); color: #eceef2; padding: 6px 10px; border-radius: 8px; font-size: 12px; }
 .cde-ley i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; }
 .cde-side { background: var(--card); border-left: 1px solid var(--line); padding: 14px; overflow: auto; font-size: 13px; }
 .cde-side h3 { margin: 0 0 8px; }
@@ -154,3 +154,4 @@
 .cde-verif { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: start; }
 .cde-t td.hash { word-break: break-all; max-width: 280px; }
 @media (max-width: 1100px) { .cde-split.tres { grid-template-columns: 1fr 340px; } .cde-arbol { display: none; } }
+.cde-motor { position: absolute; right: 10px; top: 8px; font-size: 11px; color: #9aa3b2; background: rgba(15, 17, 20, .7); padding: 3px 8px; border-radius: 6px; pointer-events: none; }

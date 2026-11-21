@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import thatOpen from './vite.thatopen.js'
 
 export default defineConfig({
-  plugins: [react()],
-  // dos aplicaciones: el gemelo (/) y el entorno común de datos (/cde/), cada una con su entrada
-  build: { chunkSizeWarningLimit: 2500, rollupOptions: { input: { gemelo: 'index.html', cde: 'cde/index.html' } } },
+  plugins: [thatOpen(), react()],
+  // tres aplicaciones: el gemelo (/), el entorno común de datos (/cde/) y el gemelo del edificio (/edificio/)
+  build: { chunkSizeWarningLimit: 6000, rollupOptions: { input: { gemelo: 'index.html', cde: 'cde/index.html', edificio: 'edificio/index.html' } } },
   worker: { format: 'es' },
   server: {
     // en desarrollo, los IFC del Port se piden a través de este proxy (su servidor no permite CORS);

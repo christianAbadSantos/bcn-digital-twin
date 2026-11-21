@@ -29,6 +29,7 @@ const MapTwin = lazy(() => import('./MapTwin.jsx'))
 const ThreeTwin = lazy(() => import('./ThreeTwin.jsx'))
 // el entorno común de datos es otra aplicación (/cde/); el gemelo solo lee lo que tiene publicado
 const CDE_URL = import.meta.env.VITE_CDE_URL || '/cde/'
+const EDIFICIO_URL = import.meta.env.VITE_EDIFICIO_URL || '/edificio/'
 
 const TILES3D_URL = import.meta.env.VITE_TILES3D_URL || ''
 const GOOGLE_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || ''
@@ -189,6 +190,7 @@ export default function App() {
           <button className={view === 'scene' ? 'on' : ''} onClick={() => goView('scene')}>Escena 3D</button>
           <button className={view === 'dash' ? 'on' : ''} onClick={() => goView('dash')}>Dashboard</button>
           <a className="navlink" href={CDE_URL} title="Entorno común de datos (ISO 19650): modelos IFC, decisiones de obra, mantenimiento">CDE ↗</a>
+          <a className="navlink" href={EDIFICIO_URL} title="Gemelo del edificio: plantas, mapa térmico por sala y puntos del BMS sobre el modelo IFC">Edificio ↗</a>
         </nav>
         <div className="top-r">
           <span className="pill">Datos reales + simulados</span>

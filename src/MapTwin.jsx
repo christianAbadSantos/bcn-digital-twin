@@ -14,13 +14,14 @@ import { localToLonLat } from './hospitalGeo.js'
 
 // edificios publicados en el entorno común de datos (otra aplicación): /cde/publicados.json
 const CDE_URL = import.meta.env.VITE_CDE_URL || '/cde/'
+const EDIFICIO_URL = import.meta.env.VITE_EDIFICIO_URL || '/edificio/'
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 function bimFeatures(pub) {
   const out = []
   for (const p of pub.proyectos || []) {
     const h = { lat: p.origen.lat, lon: p.origen.lon, trueNorth: [Math.cos((p.rumbo * Math.PI) / 180), Math.sin((p.rumbo * Math.PI) / 180)] }
     const ring = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]].map(([a, b]) => localToLonLat(h, (a * p.planta.ancho) / 2, (b * p.planta.fondo) / 2))
-    const info = `<b>${esc(p.codigo)} · ${esc(p.nombre)}</b><br>${esc(p.tipo)} · ${esc(p.fase)}<br>${p.publicados.map((m) => `${esc(m.titulo)}: <b>${esc(m.revision)}</b> (${esc(m.idoneidad)})`).join('<br>')}<br><a href="${esc(new URL(p.enlace || CDE_URL, location.href).href)}">Abrir en el CDE →</a>`
+    const info = `<b>${esc(p.codigo)} · ${esc(p.nombre)}</b><br>${esc(p.tipo)} · ${esc(p.fase)}<br>${p.publicados.map((m) => `${esc(m.titulo)}: <b>${esc(m.revision)}</b> (${esc(m.idoneidad)})`).join('<br>')}<br><a href="${esc(new URL(EDIFICIO_URL, location.href).href)}">Gemelo del edificio (BMS) →</a><br><a href="${esc(new URL(p.enlace || CDE_URL, location.href).href)}">Abrir en el CDE →</a>`
     p.plantas.forEach((pl, i) => out.push({ type: 'Feature', properties: { base: pl.base, top: pl.top, color: i === p.plantas.length - 1 ? '#5b6270' : i % 2 ? '#f6c35a' : '#f0a92e', info, nom: i === 0 ? `${p.codigo} · BIM` : '' }, geometry: { type: 'Polygon', coordinates: [ring] } }))
   }
   return out
