@@ -52,6 +52,17 @@ Aplicación propia en **[/cde/](https://bcn-digital-twin.pages.dev/cde/)**, cone
 
 El CDE publica sus modelos publicados en `/cde/publicados.json`. El gemelo los lee y los dibuja en el mapa (capa *Edificios BIM (CDE)*), con un enlace de vuelta al CDE.
 
+### Obra 4D/5D
+
+La pestaña *Obra 4D/5D* del CDE muestra cómo avanza la obra sobre el modelo IFC.
+
+- **Plan de obra.** Sale de las propiedades PdE de cada elemento: fase, planta, unidad de obra y cantidades.
+- **Deslizador de tiempo y reproducción.** Lo que no ha empezado no se ve, lo que está en curso sale en naranja (en rojo si va con retraso) y lo terminado se ve con su material. Debajo hay un diagrama de barras que compara el plan con el avance real.
+- **Valor ganado (5D).** PV, EV, AC, SPI, CPI, coste estimado al final (EAC) y la curva S.
+- **Sensores de obra.** Temperatura de curado de cada forjado, vibración con umbral de 5 mm/s y lluvia, con sus alertas.
+
+Toda la lógica está en `shared/obra.js`, con tests. La spec es `docs/specs/obra-4d5d.md`. Precios, retrasos y sensores son de ejemplo.
+
 ### Guía BIM de Puertos del Estado
 
 El CDE y el gemelo aplican la [Guía BIM de Puertos del Estado](https://www.puertos.es/system/files/2024-02/Guia%20BIM%2009.pdf) (junio de 2019), la referencia de las Autoridades Portuarias para proyectos, obras y explotación con BIM (`shared/pde.js`, con tests):
