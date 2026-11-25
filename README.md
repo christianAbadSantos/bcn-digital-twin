@@ -52,6 +52,23 @@ Aplicación propia en **[/cde/](https://bcn-digital-twin.pages.dev/cde/)**, cone
 
 El CDE publica sus modelos publicados en `/cde/publicados.json`. El gemelo los lee y los dibuja en el mapa (capa *Edificios BIM (CDE)*), con un enlace de vuelta al CDE.
 
+### Guía BIM de Puertos del Estado
+
+El CDE y el gemelo aplican la [Guía BIM de Puertos del Estado](https://www.puertos.es/system/files/2024-02/Guia%20BIM%2009.pdf) (junio de 2019), la referencia de las Autoridades Portuarias para proyectos, obras y explotación con BIM (`shared/pde.js`, con tests):
+
+- **Set de propiedades PdE (LOI, 5.2.2):** cada elemento de los IFC lleva `01_PdE_Identificación`, `02_PdE_Cantidades`, `03_PdE_Proyecto`, `04_PdE_Obra` y `05_PdE_EOM`, con enlaces (url) a los documentos del CDE y el epígrafe de activo contable del anexo III.
+- **IDS de la guía** (`public/data/cde/PdE-guia-bim.ids`, generado con `scripts/build-pde-ids.mjs`): se elige en *Validación IDS* junto a los requisitos del cliente. Encuentra el hueco que se ha dejado a propósito: la bajante TU-001 no tiene epígrafe contable.
+- **Pestaña *Guía BIM PdE* del CDE:**
+  - Por cada modelo: código de archivo del anexo IV, LOD, nivel de información y resultado del IDS.
+  - Checklist de auditoría (9.2.3) rellenada sola, con informe de cumplimiento descargable (9.3).
+  - Usos BIM del Sistema Portuario y dónde se aplican.
+  - Flujo aprobado → autorizado → verificado.
+  - Comprobador de nombres del anexo IV.
+  - Mediciones por unidad de obra con su epígrafe contable.
+- **Port de Barcelona:** cada modelo IFC del catálogo lleva en el mapa su ficha PdE (estado, tipología, disciplina y epígrafe contable). Es una propuesta: los IFC del catálogo no la traen.
+
+La clasificación de los elementos de edificación es propia (`BCN.<familia>`). La guía remite a guBIMclass para lo que no es obra portuaria, y no se han inventado códigos. La clasificación portuaria PT del anexo II está en `shared/pde.js`.
+
 ### Gemelo del edificio (BMS)
 
 Aplicación propia en **[/edificio/](https://bcn-digital-twin.pages.dev/edificio/)**, que se abre desde el edificio en el mapa, desde la cabecera del gemelo y desde el CDE. Es una vista de supervisión y control de las instalaciones sobre el modelo IFC del CDE, con el visor de That Open:

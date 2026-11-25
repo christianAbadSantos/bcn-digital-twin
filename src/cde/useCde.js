@@ -23,8 +23,8 @@ function seed() {
   const run = (d, pasos) => pasos.reduce((x, [acc, o]) => applyAction(x, acc, { ...o, ahora: t() }).doc, d)
   const docs = [
     // el modelo de arquitectura se validó y publicó con la versión anterior del IDS del cliente
-    run({ ...mk('d1', 'BCN01-CAB-ZZ-XX-M3-A-0001.ifc', 'Modelo de arquitectura', 51000, true), ids: { ok: true, total: 17, malos: 0, t: t(), titulo: 'BCN01 · Requisitos (versión 0.9)' } }, [['compartir', { rol: 'autor', idoneidad: 'S1' }], ['pedirAutorizacion', { rol: 'coordinador' }], ['publicar', { rol: 'cliente' }]]),
-    run(mk('d2', 'BCN01-CAB-ZZ-XX-M3-M-0001.ifc', 'Modelo de instalaciones', 15000, true), [['compartir', { rol: 'autor', idoneidad: 'S3' }]]),
+    run({ ...mk('d1', 'BCN01-CAB-ZZ-XX-M3-A-0001.ifc', 'Modelo de arquitectura', 230000, true), ids: { ok: true, total: 17, malos: 0, t: t(), titulo: 'BCN01 · Requisitos (versión 0.9)' } }, [['compartir', { rol: 'autor', idoneidad: 'S1' }], ['pedirAutorizacion', { rol: 'coordinador' }], ['publicar', { rol: 'cliente' }]]),
+    run(mk('d2', 'BCN01-CAB-ZZ-XX-M3-M-0001.ifc', 'Modelo de instalaciones', 58000, true), [['compartir', { rol: 'autor', idoneidad: 'S3' }]]),
     run(mk('d3', 'BCN01-CAB-ZZ-XX-SP-A-0001.pdf', 'Pliego de condiciones técnicas', 820000), [['compartir', { rol: 'autor', idoneidad: 'S2' }]]),
     { ...mk('d4', 'BCN01-CAB-ZZ-00-DR-A-1001.pdf', 'Plano de planta baja', 1240000), revision: 'P01.02' },
     mk('d5', 'BCN01-CAB-ZZ-XX-SA-F-0001.xlsx', 'Programa de mantenimiento', 64000),

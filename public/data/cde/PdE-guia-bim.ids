@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Set de propiedades de la Guía BIM de Puertos del Estado (junio de 2019, apartado 5.2.2, tabla 26) en IDS 1.0.
+     Generado con scripts/build-pde-ids.mjs. Fuente: https://www.puertos.es/system/files/2024-02/Guia%20BIM%2009.pdf -->
+<ids:ids xmlns:ids="http://standards.buildingsmart.org/IDS" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://standards.buildingsmart.org/IDS http://standards.buildingsmart.org/IDS/1.0/ids.xsd">
+  <ids:info>
+    <ids:title>Guía BIM de Puertos del Estado · set de propiedades (LOI)</ids:title>
+    <ids:version>2019-06</ids:version>
+    <ids:author>bim@cde-ejemplo.es</ids:author>
+    <ids:date>2026-11-25</ids:date>
+    <ids:purpose>Comprobar que cada elemento lleva el set de propiedades PdE: identificación, cantidades, proyecto y explotación y mantenimiento</ids:purpose>
+  </ids:info>
+  <ids:specifications>
+    <ids:specification name="01 · Identificación del elemento" ifcVersion="IFC4" description="Proyecto, localizador, estado, clasificación, tipología, disciplina, subdisciplina y material (5.2.2).">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity><ids:name><ids:simpleValue>IFCWALL</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSLAB</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCCOLUMN</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCDOOR</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCWINDOW</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCROOF</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSPACE</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCUNITARYEQUIPMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCPUMP</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCELECTRICDISTRIBUTIONBOARD</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSENSOR</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCDUCTSEGMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCPIPESEGMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCBUILDINGELEMENTPROXY</ids:simpleValue></ids:name></ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>01_PdE_Identificación</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>01_01_PdE_Proyecto</ids:simpleValue></ids:baseName>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>01_PdE_Identificación</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>01_02_PdE_Localizador</ids:simpleValue></ids:baseName>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>01_PdE_Identificación</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>01_03_PdE_Estado</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:enumeration value="Existente"/><xs:enumeration value="Proyecto Básico"/><xs:enumeration value="Proyecto Constructivo"/><xs:enumeration value="Obra"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>01_PdE_Identificación</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>01_04_PdE_Clasificación</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="(PT|BCN)\.[A-Z0-9.]+"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>01_PdE_Identificación</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>01_05_PdE_Tipología</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:enumeration value="Obras marítimas"/><xs:enumeration value="Urbanización"/><xs:enumeration value="Accesos terrestres"/><xs:enumeration value="Edificación"/><xs:enumeration value="Edificación industrial"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>01_PdE_Identificación</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>01_06_PdE_Disciplina</ids:simpleValue></ids:baseName>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>01_PdE_Identificación</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>01_07_PdE_Subdisciplina</ids:simpleValue></ids:baseName>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>01_PdE_Identificación</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>01_08_PdE_Material</ids:simpleValue></ids:baseName>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="02 · Cantidades" ifcVersion="IFC4" description="Unidad de medición y magnitudes del elemento, para la trazabilidad de las mediciones (uso BIM «Mediciones»).">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity><ids:name><ids:simpleValue>IFCWALL</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSLAB</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCCOLUMN</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCDOOR</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCWINDOW</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCROOF</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSPACE</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCUNITARYEQUIPMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCPUMP</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCELECTRICDISTRIBUTIONBOARD</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSENSOR</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCDUCTSEGMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCPIPESEGMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCBUILDINGELEMENTPROXY</ids:simpleValue></ids:name></ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>02_PdE_Cantidades</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>02_01_PdE_Unidad</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:enumeration value="ud"/><xs:enumeration value="m"/><xs:enumeration value="m2"/><xs:enumeration value="m3"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCREAL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>02_PdE_Cantidades</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>02_02_PdE_Longitud</ids:simpleValue></ids:baseName>
+        </ids:property>
+        <ids:property dataType="IFCREAL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>02_PdE_Cantidades</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>02_04_PdE_Area</ids:simpleValue></ids:baseName>
+        </ids:property>
+        <ids:property dataType="IFCREAL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>02_PdE_Cantidades</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>02_05_PdE_Volumen</ids:simpleValue></ids:baseName>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="03 · Proyecto" ifcVersion="IFC4" description="Fase de obra, unidad de medición y enlaces (url) a los planos y al pliego en el CDE (5.2.3: información vinculada por url).">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity><ids:name><ids:simpleValue>IFCWALL</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSLAB</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCCOLUMN</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCDOOR</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCWINDOW</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCROOF</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSPACE</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCUNITARYEQUIPMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCPUMP</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCELECTRICDISTRIBUTIONBOARD</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSENSOR</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCDUCTSEGMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCPIPESEGMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCBUILDINGELEMENTPROXY</ids:simpleValue></ids:name></ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>03_PdE_Proyecto</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>03_01_PdE_Fase Obra</ids:simpleValue></ids:baseName>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>03_PdE_Proyecto</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>03_02_PdE_Planos</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="https?://.+"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>03_PdE_Proyecto</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>03_03_PdE_PPTP</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="https?://.+"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>03_PdE_Proyecto</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>03_04_01_PdE_Ud Medición 01</ids:simpleValue></ids:baseName>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+    <ids:specification name="05 · Explotación y mantenimiento" ifcVersion="IFC4" description="Código de inventario de mantenimiento y epígrafe de activo contable del anexo III (cuatro cifras).">
+      <ids:applicability minOccurs="0" maxOccurs="unbounded">
+        <ids:entity><ids:name><ids:simpleValue>IFCWALL</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSLAB</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCCOLUMN</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCDOOR</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCWINDOW</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCROOF</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSPACE</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCUNITARYEQUIPMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCPUMP</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCELECTRICDISTRIBUTIONBOARD</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCSENSOR</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCDUCTSEGMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCPIPESEGMENT</ids:simpleValue></ids:name></ids:entity>
+        <ids:entity><ids:name><ids:simpleValue>IFCBUILDINGELEMENTPROXY</ids:simpleValue></ids:name></ids:entity>
+      </ids:applicability>
+      <ids:requirements>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>05_PdE_EOM</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>05_01_01_PdE_Cod Mantenimiento</ids:simpleValue></ids:baseName>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>05_PdE_EOM</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>05_01_02_PdE_Aux Mantenimiento</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="https?://.+"/></xs:restriction></ids:value>
+        </ids:property>
+        <ids:property dataType="IFCLABEL" cardinality="required">
+          <ids:propertySet><ids:simpleValue>05_PdE_EOM</ids:simpleValue></ids:propertySet>
+          <ids:baseName><ids:simpleValue>05_03_01_PdE_Cod Contable</ids:simpleValue></ids:baseName>
+          <ids:value><xs:restriction base="xs:string"><xs:pattern value="[0-9]{4}"/></xs:restriction></ids:value>
+        </ids:property>
+      </ids:requirements>
+    </ids:specification>
+  </ids:specifications>
+</ids:ids>

@@ -5,15 +5,17 @@
 // están puestas a mano y son APROXIMADAS. Cada modelo existe en LOD1 (ligero) y LOD3 (detallado);
 // se elige el más detallado que quepa en el presupuesto del dispositivo. Tamaños en bytes.
 export const PORT_BIM_CATALOG = 'https://serveis.portdebarcelona.cat/cataleg_bim_planol/'
+// pde: ficha según la Guía BIM de Puertos del Estado (tipología de proyecto, disciplina y epígrafe de activo
+// contable del anexo III). Los IFC del catálogo no la traen: es una PROPUESTA hecha en el gemelo.
 export const PORT_BIM = [
-  { f: 'APBCN-URB-MON-Monumento_Cristobal_Colon', name: 'Monument a Colom', lon: 2.17768, lat: 41.37578, rot: 0, size: { LOD1: 114384, LOD3: 50942233 } },
-  { f: 'APBCN-URB-MON-Edificio_WTC', name: 'World Trade Center', lon: 2.1803, lat: 41.3713, rot: 0, size: { LOD1: 20196026, LOD3: 2810784 } },
-  { f: 'APBCN-URB-MON-Edificio_PortalPau', name: 'Edifici Portal de la Pau (APB)', lon: 2.1766, lat: 41.3747, rot: 0, size: { LOD1: 180409, LOD3: 10026127 } },
-  { f: 'APBCN-URB-MON-Edificio_MaremagnumBarcelona', name: 'Maremagnum', lon: 2.1838, lat: 41.3747, rot: 0, size: { LOD1: 47185, LOD3: 9879631 } },
-  { f: 'APBCN-URB-MON-Edificio_RambladelMar', name: 'Rambla de Mar', lon: 2.1801, lat: 41.3752, rot: 0, size: { LOD1: 1093225, LOD3: 1958238 } },
-  { f: 'APBCN-URB-MON-Monumento_Torre_DelRellotge', name: 'Torre del Rellotge', lon: 2.1856, lat: 41.3757, rot: 0, size: { LOD1: 25790, LOD3: 104063 } },
-  { f: 'APBCN-URB-MON-Edificio_Vela', name: 'Edificio Vela (Hotel W)', lon: 2.1897, lat: 41.3684, rot: 0, size: { LOD1: 201744, LOD3: 3085942 } },
-  { f: 'APBCN-URB-MON-Edificio_Terminal_A', name: 'Terminal A de cruceros', lon: 2.1744, lat: 41.354, rot: 0, size: { LOD1: 507312, LOD3: 982937 } },
+  { f: 'APBCN-URB-MON-Monumento_Cristobal_Colon', name: 'Monument a Colom', pde: { tipologia: 'UR', disciplina: 'Equipamiento', epigrafe: '0604' }, lon: 2.17768, lat: 41.37578, rot: 0, size: { LOD1: 114384, LOD3: 50942233 } },
+  { f: 'APBCN-URB-MON-Edificio_WTC', name: 'World Trade Center', pde: { tipologia: 'ED', disciplina: 'Arquitectura', epigrafe: '0603' }, lon: 2.1803, lat: 41.3713, rot: 0, size: { LOD1: 20196026, LOD3: 2810784 } },
+  { f: 'APBCN-URB-MON-Edificio_PortalPau', name: 'Edifici Portal de la Pau (APB)', pde: { tipologia: 'ED', disciplina: 'Arquitectura', epigrafe: '0603' }, lon: 2.1766, lat: 41.3747, rot: 0, size: { LOD1: 180409, LOD3: 10026127 } },
+  { f: 'APBCN-URB-MON-Edificio_MaremagnumBarcelona', name: 'Maremagnum', pde: { tipologia: 'ED', disciplina: 'Arquitectura', epigrafe: '0604' }, lon: 2.1838, lat: 41.3747, rot: 0, size: { LOD1: 47185, LOD3: 9879631 } },
+  { f: 'APBCN-URB-MON-Edificio_RambladelMar', name: 'Rambla de Mar', pde: { tipologia: 'AT', disciplina: 'Estructuras', epigrafe: '0805' }, lon: 2.1801, lat: 41.3752, rot: 0, size: { LOD1: 1093225, LOD3: 1958238 } },
+  { f: 'APBCN-URB-MON-Monumento_Torre_DelRellotge', name: 'Torre del Rellotge', pde: { tipologia: 'ED', disciplina: 'Arquitectura', epigrafe: '0607' }, lon: 2.1856, lat: 41.3757, rot: 0, size: { LOD1: 25790, LOD3: 104063 } },
+  { f: 'APBCN-URB-MON-Edificio_Vela', name: 'Edificio Vela (Hotel W)', pde: { tipologia: 'ED', disciplina: 'Arquitectura', epigrafe: '0604' }, lon: 2.1897, lat: 41.3684, rot: 0, size: { LOD1: 201744, LOD3: 3085942 } },
+  { f: 'APBCN-URB-MON-Edificio_Terminal_A', name: 'Terminal A de cruceros', pde: { tipologia: 'ED', disciplina: 'Arquitectura', epigrafe: '0602' }, lon: 2.1744, lat: 41.354, rot: 0, size: { LOD1: 507312, LOD3: 982937 } },
 ]
 
 export function pickLod(item, maxBytes) {

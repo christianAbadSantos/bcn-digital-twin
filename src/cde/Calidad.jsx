@@ -1,5 +1,5 @@
 // Control de calidad del CDE: validación IDS, detección de colisiones, certificados y árbol del modelo.
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { describe as describeReq, parseIds, validate } from '../../shared/ids.js'
 import { detectClashes } from '../../shared/clash.js'
 import { ESTADOS } from '../../shared/cde.js'
@@ -9,12 +9,15 @@ const fecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { day: '2-digit', 
 const disciplina = (f) => (/-M-\d{4}/.test(f) ? 'Instalaciones' : /-A-\d{4}/.test(f) ? 'Arquitectura' : f)
 
 // ---- IDS
+// requisitos disponibles en el servidor: los del cliente y los de la Guía BIM de Puertos del Estado
+export const IDS_SERVIDOR = [['BCN01-requisitos.ids', 'Requisitos del cliente (BCN01)'], ['PdE-guia-bim.ids', 'Guía BIM de Puertos del Estado (set de propiedades)']]
 export function useIds() {
   const [ids, setIds] = useState(null)
   const [err, setErr] = useState(null)
-  useEffect(() => { fetch('/data/cde/BCN01-requisitos.ids').then((r) => r.text()).then((t) => setIds({ ...parseIds(t), fichero: 'BCN01-requisitos.ids' })).catch((e) => setErr(e.message)) }, [])
+  const elegir = useCallback((f) => { fetch(`/data/cde/${f}`).then((r) => r.text()).then((t) => { setIds({ ...parseIds(t), fichero: f }); setErr(null) }).catch((e) => setErr(e.message)) }, [])
+  useEffect(() => { elegir(IDS_SERVIDOR[0][0]) }, [elegir])
   const cargar = async (file) => { try { setIds({ ...parseIds(await file.text()), fichero: file.name }); setErr(null) } catch (e) { setErr(e.message) } }
-  return { ids, err, cargar }
+  return { ids, err, cargar, elegir }
 }
 
 export function Validacion({ cde, meta, ids, onVer, onColor }) {
@@ -28,14 +31,15 @@ export function Validacion({ cde, meta, ids, onVer, onColor }) {
       <p className="muted">El cliente define en un fichero <b>IDS</b> (estándar de buildingSMART) qué información tiene que llevar cada elemento del modelo. El CDE comprueba el modelo contra esos requisitos y <b>no deja publicar un modelo IFC que no los cumpla</b>.</p>
       <div className="cde-row">
         <label>Modelo <select value={sel} onChange={(e) => setSel(e.target.value)}>{modelos.map((d) => <option key={d.id} value={d.id}>{disciplina(d.nombre)} · {d.nombre} · {d.revision} ({ESTADOS[d.estado].nom})</option>)}</select></label>
-        <span className="muted">Requisitos: <b>{ids.ids?.titulo || '…'}</b> ({ids.ids?.fichero})</span>
+        <label className="muted">Requisitos <select value={IDS_SERVIDOR.some(([f]) => f === ids.ids?.fichero) ? ids.ids.fichero : ''} onChange={(e) => e.target.value && ids.elegir(e.target.value)}>{IDS_SERVIDOR.map(([f, n]) => <option key={f} value={f}>{n}</option>)}{!IDS_SERVIDOR.some(([f]) => f === ids.ids?.fichero) && <option value="">{ids.ids?.fichero || '…'}</option>}</select></label>
+        <span className="muted"><b>{ids.ids?.titulo || '…'}</b> ({ids.ids?.fichero})</span>
         <label className="btn sm">Cargar otro IDS<input type="file" accept=".ids,.xml" hidden onChange={(e) => e.target.files[0] && ids.cargar(e.target.files[0])} /></label>
         {ids.err && <span className="bad">{ids.err}</span>}
       </div>
       {!r ? <div className="calm">Leyendo el modelo…</div> : (
         <>
           <div className={`cde-ids ${r.ok ? 'ok' : 'bad'}`}>
-            <b>{r.ok ? '✓ Cumple los requisitos del cliente' : `✗ ${r.malos} de ${r.total} elementos no cumplen`}</b>
+            <b>{r.ok ? (ids.ids?.fichero?.startsWith('PdE') ? '✓ Cumple la Guía BIM de Puertos del Estado' : '✓ Cumple los requisitos del cliente') : `✗ ${r.malos} de ${r.total} elementos no cumplen`}</b>
             <span>{r.total} elementos comprobados · {r.resultados.length} especificaciones</span>
             {doc.ids && <small>Último sello en el contenedor: {doc.ids.ok ? 'cumple' : `${doc.ids.malos} con fallos`} · {fecha(doc.ids.t)}{doc.ids.titulo ? ` · ${doc.ids.titulo}` : ''}</small>}
             <div className="cde-row">

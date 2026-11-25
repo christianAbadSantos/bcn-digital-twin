@@ -5,13 +5,14 @@ import { ACCIONES, ESTADOS, IDONEIDAD, ROLES, TIPOS, ROLES_DOC, ESTADOS_DEC, TIP
 import { PROYECTO, useCde } from './useCde.js'
 import { useModelMeta } from './useModelMeta.js'
 import { Arbol, Certificados, Colisiones, Validacion, useIds } from './Calidad.jsx'
+import GuiaPde from './GuiaPde.jsx'
 import { detectClashes } from '../../shared/clash.js'
 import './cde.css'
 
 const CdeViewer = lazy(() => import('./CdeViewer.jsx'))
 const CdeMap = lazy(() => import('./CdeMap.jsx'))
 
-const TABS = [['docs', 'Documentos'], ['modelo', 'Modelo 3D'], ['ids', 'Validación IDS'], ['col', 'Colisiones'], ['dec', 'Decisiones de obra'], ['gmao', 'Mantenimiento'], ['certs', 'Certificados'], ['mapa', 'Mapa GIS'], ['sp', 'SharePoint'], ['log', 'Actividad'], ['proyecto', 'Proyecto']]
+const TABS = [['docs', 'Documentos'], ['modelo', 'Modelo 3D'], ['ids', 'Validación IDS'], ['col', 'Colisiones'], ['dec', 'Decisiones de obra'], ['gmao', 'Mantenimiento'], ['certs', 'Certificados'], ['mapa', 'Mapa GIS'], ['sp', 'SharePoint'], ['log', 'Actividad'], ['pde', 'Guía BIM PdE'], ['proyecto', 'Proyecto']]
 const fecha = (t) => (t ? new Date(t).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—')
 const kb = (b) => (b > 1e6 ? `${(b / 1e6).toFixed(1).replace('.', ',')} MB` : `${Math.round(b / 1000)} kB`)
 const Estado = ({ e }) => <span className="cde-est" style={{ '--c': ESTADOS[e].color }}>{ESTADOS[e].nom}</span>
@@ -94,6 +95,7 @@ export default function Cde({ onGemelo }) {
         {tab === 'mapa' && <Suspense fallback={<div className="cde-msg">Cargando el mapa…</div>}><CdeMap indice={cde.indice} sensores={cde.sensores} onGemelo={onGemelo} /></Suspense>}
         {tab === 'sp' && <SharePoint cde={cde} />}
         {tab === 'log' && <Actividad cde={cde} />}
+        {tab === 'pde' && <GuiaPde cde={cde} meta={meta} choques={choques} />}
         {tab === 'proyecto' && <Proyecto cde={cde} />}
       </div>
     </div>

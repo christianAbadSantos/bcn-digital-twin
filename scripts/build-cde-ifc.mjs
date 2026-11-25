@@ -22,6 +22,26 @@ const LEVELS = [
   { code: '01', name: 'Planta primera', z: 4.0, h: 3.6 },
 ]
 const ROOF_Z = 7.6
+// Guía BIM de Puertos del Estado: disciplina, subdisciplina, material, unidad de medición, fase y epígrafe de activo
+// contable (anexo III) de cada clase. La clasificación de elementos de edificación es propia (BCN.<familia>):
+// la guía remite a guBIMclass para lo que no es obra portuaria y admite sistemas propios mientras tanto.
+const CDE_WEB = 'https://bcn-digital-twin.pages.dev/cde/'
+const PDE_TIPO = {
+  IFCWALL: { dis: 'Arquitectura', sub: 'Fachadas', mat: 'Fábrica de ladrillo con aislamiento', ud: 'm2', fase: 'F3 Cerramientos', epi: '0604' },
+  IFCSLAB: { dis: 'Estructuras', sub: 'Forjados', mat: 'Hormigón armado HA-30', ud: 'm2', fase: 'F2 Estructura', epi: '0604' },
+  IFCCOLUMN: { dis: 'Estructuras', sub: 'Pilares', mat: 'Hormigón armado HA-30', ud: 'm3', fase: 'F2 Estructura', epi: '0604' },
+  IFCWINDOW: { dis: 'Arquitectura', sub: 'Carpinterías', mat: 'Aluminio con rotura de puente térmico y vidrio doble', ud: 'ud', fase: 'F3 Cerramientos', epi: '0706' },
+  IFCDOOR: { dis: 'Arquitectura', sub: 'Carpinterías', mat: 'Acero con aislamiento', ud: 'ud', fase: 'F3 Cerramientos', epi: '0706' },
+  IFCROOF: { dis: 'Arquitectura', sub: 'Cubiertas', mat: 'Cubierta invertida con grava', ud: 'm2', fase: 'F3 Cerramientos', epi: '0604' },
+  IFCSPACE: { dis: 'Arquitectura', sub: 'Espacios', mat: 'No aplica', ud: 'm2', fase: 'F5 Acabados', epi: '0604' },
+  IFCUNITARYEQUIPMENT: { dis: 'Instalaciones', sub: 'Climatización', mat: 'Chapa de acero galvanizado', ud: 'ud', fase: 'F4 Instalaciones', epi: '0709' },
+  IFCPUMP: { dis: 'Instalaciones', sub: 'Fontanería', mat: 'Fundición y acero inoxidable', ud: 'ud', fase: 'F4 Instalaciones', epi: '0705' },
+  IFCELECTRICDISTRIBUTIONBOARD: { dis: 'Instalaciones', sub: 'Electricidad', mat: 'Armario metálico', ud: 'ud', fase: 'F4 Instalaciones', epi: '0704' },
+  IFCSENSOR: { dis: 'Instalaciones', sub: 'Control y sensores', mat: 'Plástico ABS', ud: 'ud', fase: 'F4 Instalaciones', epi: '0708' },
+  IFCDUCTSEGMENT: { dis: 'Instalaciones', sub: 'Climatización', mat: 'Chapa de acero galvanizado', ud: 'm', fase: 'F4 Instalaciones', epi: '0709' },
+  IFCPIPESEGMENT: { dis: 'Instalaciones', sub: 'Saneamiento', mat: 'PVC', ud: 'm', fase: 'F4 Instalaciones', epi: '0707' },
+  IFCBUILDINGELEMENTPROXY: { dis: 'Arquitectura', sub: 'Otros', mat: 'No aplica', ud: 'ud', fase: 'F5 Acabados', epi: '0604' },
+}
 
 // GlobalId deterministas (mismo modelo cada vez que se genera: las decisiones de obra siguen enlazadas)
 const CH = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$'
@@ -88,7 +108,7 @@ function model({ file, role, discipline, description }) {
     const solid = add(`IFCEXTRUDEDAREASOLID(${rect},${world},${zUp},${num(h)})`)
     add(`IFCSTYLEDITEM(${solid},(${styles[styleKey]}),$)`)
     const rep = add(`IFCSHAPEREPRESENTATION(${body},'Body','SweptSolid',(${solid}))`)
-    return { pl, shape: add(`IFCPRODUCTDEFINITIONSHAPE($,$,(${rep}))`) }
+    return { pl, shape: add(`IFCPRODUCTDEFINITIONSHAPE($,$,(${rep}))`), dims: { w, l, h } }
   }
   const prop = (k, v) => add(`IFCPROPERTYSINGLEVALUE(${str(k)},$,${v},$)`)
   const L_ = (v) => `IFCLABEL(${str(v)})`, B_ = (v) => `IFCBOOLEAN(.${v ? 'T' : 'F'}.)`, Lm = (v) => `IFCLENGTHMEASURE(${num(v)})`, I_ = (v) => `IFCIDENTIFIER(${str(v)})`, T_ = (v) => `IFCTEXT(${str(v)})`, In = (v) => `IFCINTEGER(${v})`
@@ -96,10 +116,30 @@ function model({ file, role, discipline, description }) {
     const ps = add(`IFCPROPERTYSET(${G(seed + name)},${owner},${str(name)},$,(${props.join(',')}))`)
     add(`IFCRELDEFINESBYPROPERTIES(${G(seed + name + 'rel')},${owner},$,$,(${target}),${ps})`)
   }
+  // set de propiedades de la Guía BIM de Puertos del Estado (5.2.2, tabla 26) en todos los elementos
+  const R_ = (v) => `IFCREAL(${num(Math.round(v * 1000) / 1000)})`
+  const pde = (id, entity, seed, st, d) => {
+    const fam = seed.split('-')[0], tipo = PDE_TIPO[entity] || PDE_TIPO.IFCBUILDINGELEMENTPROXY
+    const muro = entity === 'IFCWALL'
+    // en pilares y en redes verticales (bajantes) la longitud es la altura
+    const vertical = entity === 'IFCCOLUMN' || (/SEGMENT$/.test(entity) && d.h > Math.max(d.w, d.l))
+    const largo = vertical ? d.h : Math.max(d.w, d.l), espesor = Math.min(d.w, d.l)
+    const area = muro ? largo * d.h : d.w * d.l, vol = d.w * d.l * d.h
+    const url = (ruta) => L_(`${CDE_WEB}#${ruta}`)
+    const sub = muro && seed.endsWith('5') ? 'Tabiquerías' : tipo.sub
+    pset(id, '01_PdE_Identificación', [prop('01_01_PdE_Proyecto', L_('BCN01')), prop('01_02_PdE_Localizador', L_(`BCN01-P${st.code}`)), prop('01_03_PdE_Estado', L_('Obra')), prop('01_04_PdE_Clasificación', L_(`BCN.${fam}`)), prop('01_05_PdE_Tipología', L_('Edificación')), prop('01_06_PdE_Disciplina', L_(tipo.dis)), prop('01_07_PdE_Subdisciplina', L_(sub)), prop('01_08_PdE_Material', L_(tipo.mat))], seed)
+    pset(id, '02_PdE_Cantidades', [prop('02_01_PdE_Unidad', L_(tipo.ud)), prop('02_02_PdE_Longitud', R_(largo)), prop('02_03_PdE_Espesor', R_(muro ? espesor : Math.min(espesor, d.h))), prop('02_04_PdE_Area', R_(area)), prop('02_05_PdE_Volumen', R_(vol))], seed)
+    pset(id, '03_PdE_Proyecto', [prop('03_01_PdE_Fase Obra', L_(tipo.fase)), prop('03_02_PdE_Planos', url(`doc/BCN01-CAB-ZZ-${st.code}-DR-A-1001.pdf`)), prop('03_03_PdE_PPTP', url('doc/BCN01-CAB-ZZ-XX-SP-A-0001.pdf')), prop('03_04_01_PdE_Ud Medición 01', L_(`UO-${fam}`))], seed)
+    pset(id, '04_PdE_Obra', [['04_01_PdE_Controles de Calidad', 'calidad'], ['04_02_PdE_Fotografías', 'fotos'], ['04_03_PdE_Seguridad y Salud', 'sys'], ['04_04_PdE_Informes de Aprobación', 'aprobacion'], ['04_05_PdE_Certificaciones', 'certificaciones'], ['04_06_PdE_Planos As Built', 'asbuilt'], ['04_07_PdE_MedioAmbiente', 'medioambiente']].map(([k, r]) => prop(k, url(`obra/${r}/${seed}`))), seed)
+    // la bajante de pluviales aún no tiene epígrafe contable asignado: es el hueco que encuentra la validación
+    const contable = seed === 'TU-001' ? null : tipo.epi
+    pset(id, '05_PdE_EOM', [prop('05_01_01_PdE_Cod Mantenimiento', L_(`BCN01-${seed}`)), prop('05_01_02_PdE_Aux Mantenimiento', url(`gmao/${seed}`)), prop('05_02_01_PdE_Cod Explotación', L_('BIB-SANTANTONI')), prop('05_02_02_PdE_Aux Explotación', url('edificio')), ...(contable ? [prop('05_03_01_PdE_Cod Contable', L_(contable))] : []), prop('05_03_02_PdE_AuxContable', url(`contable/${seed}`))], seed)
+  }
   const el = (st, entity, seed, name, desc, geom, tail) => {
     INDICE.push({ modelo: file, codigo: seed, guid: guidOf(`${file}:${seed}`), entidad: entity, nombre: desc, nivel: st.code })
     const id = add(`${entity}(${G(seed)},${owner},${str(name)},${str(desc)},$,${geom.pl},${geom.shape},${str(seed)}${tail})`)
     st.items.push(id)
+    pde(id, entity, seed, st, geom.dims)
     return id
   }
 
@@ -141,8 +181,10 @@ function model({ file, role, discipline, description }) {
         : [['Sala de lectura', -4.5, 0, 15, 16], ['Sala polivalente', 7.5, 0, 9, 16]]
       rooms.forEach(([nom, x, y, w, l], i) => {
         const ec = `EP-${st.code}${i + 1}`
-        const sp = add(`IFCSPACE(${G(ec)},${owner},${str(ec)},${str(nom)},$,${box(st.pl, x, y, 0, w - 0.3, l - 0.3, st.h - 0.35, 0, 'espacio').pl},${box(st.pl, x, y, 0, w - 0.3, l - 0.3, st.h - 0.35, 0, 'espacio').shape},${str(nom)},.ELEMENT.,.INTERNAL.,$)`)
+        const sb = box(st.pl, x, y, 0, w - 0.3, l - 0.3, st.h - 0.35, 0, 'espacio')
+        const sp = add(`IFCSPACE(${G(ec)},${owner},${str(ec)},${str(nom)},$,${sb.pl},${sb.shape},${str(nom)},.ELEMENT.,.INTERNAL.,$)`)
         st.items.push(sp)
+        pde(sp, 'IFCSPACE', ec, st, sb.dims)
         pset(sp, 'Pset_SpaceCommon', [prop('Reference', I_(ec)), prop('IsExternal', B_(false)), prop('GrossPlannedArea', `IFCAREAMEASURE(${num((w - 0.3) * (l - 0.3))})`)], ec)
       })
     }

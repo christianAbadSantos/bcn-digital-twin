@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { CENTER, PORT_BOUNDS, PORT_PINS, PORT_POLY, RAIL_LINES } from './geo.js'
+import { PORT_BIM, PORT_BIM_CATALOG } from './portBim.js'
+import { EPIGRAFES, GUIA, TIPOLOGIAS } from '../shared/pde.js'
 import { createMetroLayer } from './metroLayer.js'
 import { createTreesLayer } from './treesLayer.js'
 import { DEM_SOURCES, IMAGERY } from './tileMath.js'
@@ -15,6 +17,16 @@ import { localToLonLat } from './hospitalGeo.js'
 // edificios publicados en el entorno común de datos (otra aplicación): /cde/publicados.json
 const CDE_URL = import.meta.env.VITE_CDE_URL || '/cde/'
 const EDIFICIO_URL = import.meta.env.VITE_EDIFICIO_URL || '/edificio/'
+// ficha de un modelo del Port según la Guía BIM de Puertos del Estado (set 01 y 05 de la tabla 26)
+const fichaPde = (m) => {
+  const f = m.pde || {}
+  const fila = (k, v) => `<tr><td style="color:#667085;padding:1px 8px 1px 0">${esc(k)}</td><td><b>${esc(v)}</b></td></tr>`
+  return `<b>${esc(m.name)}</b><br><small>Biblioteca IFC del Port de Barcelona · ${esc(m.f)}</small>`
+    + `<div style="margin:6px 0 2px;font-weight:600;color:#0e7490">Ficha · ${esc(GUIA.titulo)}</div><table style="font-size:12px">`
+    + fila('01_03 Estado', 'Existente') + fila('01_05 Tipología', TIPOLOGIAS[f.tipologia]?.nom || '—') + fila('01_06 Disciplina', f.disciplina || '—')
+    + fila('05_03_01 Epígrafe contable', f.epigrafe ? `${f.epigrafe} · ${EPIGRAFES[f.epigrafe] || ''}` : '—') + fila('Modelos', Object.keys(m.size).join(' · '))
+    + `</table><small style="color:#667085">Propuesta del gemelo: los IFC del catálogo no traen el set de propiedades PdE ni georreferencia.</small><br><a href="${esc(PORT_BIM_CATALOG)}" target="_blank" rel="noreferrer">Catálogo del Port ↗</a>`
+}
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 function bimFeatures(pub) {
   const out = []
@@ -51,7 +63,7 @@ const GROUPS = {
   accidents: ['acc-heat', 'acc-now-dot', 'inc-halo', 'inc-dot'],
   alerts: ['alerts-ring'],
   rain: ['radar'],
-  port: ['port-fill', 'port-line'],
+  port: ['port-fill', 'port-line', 'portbim-dot', 'portbim-lbl'],
   urb: ['urb-fill', 'urb-line', 'urb-sel', 'cat-parcel', 'bld-sel'],
   agua: ['agua-fill', 'agua-line', 'agua-sel', 'agua-dep-halo', 'agua-dep', 'agua-dep-lbl'],
   bim: ['bim-ext', 'bim-lbl'],
@@ -248,6 +260,13 @@ export default function MapTwin({ data, hour, layers, live, emergency, residus, 
       map.addSource('port', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [[...PORT_POLY, PORT_POLY[0]]] } } })
       map.addLayer({ id: 'port-fill', type: 'fill', source: 'port', paint: { 'fill-color': '#2a78d6', 'fill-opacity': 0.07 } })
       map.addLayer({ id: 'port-line', type: 'line', source: 'port', paint: { 'line-color': '#184f95', 'line-width': 1.5, 'line-dasharray': [3, 2], 'line-opacity': 0.7 } })
+      // modelos IFC del Port de Barcelona con su ficha según la Guía BIM de Puertos del Estado
+      map.addSource('portbim', { type: 'geojson', data: { type: 'FeatureCollection', features: PORT_BIM.map((m) => pt(m.lon, m.lat, { nom: m.name, info: fichaPde(m) })) } })
+      map.addLayer({ id: 'portbim-dot', type: 'circle', source: 'portbim', minzoom: 12, paint: { 'circle-radius': 6, 'circle-color': '#0e7490', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } })
+      map.addLayer({ id: 'portbim-lbl', type: 'symbol', source: 'portbim', minzoom: 14.5, layout: { 'text-field': ['get', 'nom'], 'text-size': 11, 'text-font': ['Noto Sans Bold'], 'text-offset': [0, 1.2], 'text-anchor': 'top' }, paint: { 'text-color': '#0e7490', 'text-halo-color': '#fff', 'text-halo-width': 1.6 } })
+      map.on('click', 'portbim-dot', (e) => new maplibregl.Popup({ closeButton: true, maxWidth: '340px' }).setLngLat(e.lngLat).setHTML(e.features[0].properties.info).addTo(map))
+      map.on('mouseenter', 'portbim-dot', () => (map.getCanvas().style.cursor = 'pointer'))
+      map.on('mouseleave', 'portbim-dot', () => (map.getCanvas().style.cursor = pickRef.current ? 'crosshair' : ''))
 
       // accidentes históricos simulados (mapa de calor de la semana + ventana de 6 h)
       map.addSource('acc-all', { type: 'geojson', data: accidentsGeo(dataRef.current.accidents, 0, 1e9) })
